@@ -9,13 +9,17 @@ const COOT_COUNT = 4;
 const SWAN_COUNT = 2;
 const BIRD_COUNT = 2;
 const LITTER_COUNT = 16;
+const MAX_PER_KIND = 3; // nooit meer dan 3 van hetzelfde soort afval tegelijk
+const MILESTONE = 10;
+const MILESTONE_TEXT = 'Wauw wat ben jij hier goed in! Doe je mee met de volgende Afval & Café?';
+const TOAST_SECONDS = 3;
 const ALGAE_REGROW = 0.18; // dekking per seconde
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const WATER = ['#3b8bb0', '#3f92b6', '#4599bd'];
 const ALGAE = ['#2f6b2a', '#3f8232', '#519a3a', '#69b045', '#86c452'];
 // Al het afval is 16x16 zodat het even groot is.
-const LITTER_SPRITES = ['zak', 'batterij', 'schoen', 'fles', 'beker', 'vork', 'chips', 'wiel'];
+const LITTER_SPRITES = ['zak', 'batterij', 'schoen', 'fles', 'beker', 'chips', 'wiel'];
 
 interface Rect { x0: number; y0: number; x1: number; y1: number }
 interface Bubble { text: string; age: number }
@@ -46,6 +50,17 @@ function loadSprite(name: string): Promise<HTMLImageElement> {
 function abgr(hex: string): number {
   const n = parseInt(hex.slice(1), 16);
   return (0xff000000 | ((n & 0xff) << 16) | (n & 0xff00) | (n >> 16)) >>> 0;
+}
+
+// Korte melding die na TOAST_SECONDS vanzelf verdwijnt.
+function showToast(text: string) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.setAttribute('role', 'status');
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('toast-out'), TOAST_SECONDS * 1000 - 400);
+  setTimeout(() => el.remove(), TOAST_SECONDS * 1000);
 }
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -226,7 +241,9 @@ async function start(canvas: HTMLCanvasElement) {
     blocked.some((r) => x > r.x0 - pad && x < r.x1 + pad && y > r.y0 - pad && y < r.y1 + pad);
 
   function newLitter(): Litter {
-    const img = litterImgs[Math.floor(Math.random() * litterImgs.length)];
+    const free = litterImgs.filter((i) => litter.filter((l) => l.img === i).length < MAX_PER_KIND);
+    const pool = free.length > 0 ? free : litterImgs;
+    const img = pool[Math.floor(Math.random() * pool.length)];
     let x = 0;
     let y = 0;
     for (let tries = 0; tries < 40; tries++) {
@@ -346,6 +363,7 @@ async function start(canvas: HTMLCanvasElement) {
     collected++;
     if (counter) counter.textContent = String(collected);
     sessionStorage.setItem('litter-collected', String(collected));
+    if (collected === MILESTONE) showToast(MILESTONE_TEXT);
     window.dispatchEvent(new CustomEvent('litter-cleared', { detail: { x: e.clientX, y: e.clientY, count: collected } }));
   });
   document.documentElement.addEventListener('pointerleave', () => (last = null));
