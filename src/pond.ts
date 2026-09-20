@@ -8,14 +8,14 @@ const DUCK_COUNT = 3;
 const COOT_COUNT = 4;
 const SWAN_COUNT = 2;
 const BIRD_COUNT = 2;
-const LITTER_COUNT = 28;
+const LITTER_COUNT = 16;
 const ALGAE_REGROW = 0.18; // dekking per seconde
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const WATER = ['#3b8bb0', '#3f92b6', '#4599bd'];
 const ALGAE = ['#2f6b2a', '#3f8232', '#519a3a', '#69b045', '#86c452'];
 // Al het afval is 16x16 zodat het even groot is.
-const LITTER_SPRITES = ['zak', 'batterij', 'handschoen', 'fles', 'beker', 'vork', 'chips', 'wiel'];
+const LITTER_SPRITES = ['zak', 'batterij', 'schoen', 'fles', 'beker', 'vork', 'chips', 'wiel'];
 
 interface Rect { x0: number; y0: number; x1: number; y1: number }
 interface Bubble { text: string; age: number }
