@@ -91,7 +91,7 @@ body.home { background: #fff; min-height: 100vh; }
   min-width: 28px;
   height: auto;
 }
-.icon { fill: #16846b; }
+.icon { fill: #16846b; color: #16846b; top: auto; bottom: calc(var(--b) * 1%); }
 .litter {
   transform: rotate(calc(var(--r) * 1deg));
   background: none;
