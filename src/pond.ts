@@ -14,7 +14,7 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 const WATER = ['#3b8bb0', '#3f92b6', '#4599bd'];
 const ALGAE = ['#2f6b2a', '#3f8232', '#519a3a', '#69b045', '#86c452'];
 // Al het afval is 16x16 zodat het even groot is.
-const LITTER_SPRITES = ['shoe', 'jar'];
+const LITTER_SPRITES = ['zak', 'batterij', 'handschoen', 'fles', 'beker', 'vork', 'chips', 'wiel'];
 
 interface Rect { x0: number; y0: number; x1: number; y1: number }
 interface Bubble { text: string; age: number }
