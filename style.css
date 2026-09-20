@@ -120,3 +120,20 @@ body.home { background: #fff; min-height: 100vh; }
   .icon { opacity: .35; }
   .icon, .litter { min-width: 34px; }
 }
+
+/* Menu linksboven, onder elkaar */
+.home .buttons {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 150px;
+  margin: 0;
+  text-align: left;
+}
+.home .buttons .btn { padding: 10px 14px; text-align: left; }
+@media (max-width: 700px) {
+  .home .buttons { position: static; margin-bottom: 8px; }
+}
