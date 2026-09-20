@@ -3,6 +3,7 @@
 
 import '@fontsource/press-start-2p';
 import './pond.css';
+import './menu';
 
 const DUCK_COUNT = 4;
 const COOT_COUNT = 4;
@@ -192,14 +193,30 @@ async function start(canvas: HTMLCanvasElement) {
     return out;
   }
 
+  // Grote viewporthoogte (100lvh): verandert niet als de adresbalk op een telefoon in- of uitklapt.
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  const viewportHeight = () => probe.offsetHeight || window.innerHeight;
+
+  let sized = '';
   function resize() {
-    scale = clamp(Math.round(window.innerWidth / 360), 2, 6);
-    W = Math.ceil(window.innerWidth / scale);
-    H = Math.ceil(window.innerHeight / scale);
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = window.innerWidth;
+    const cssH = viewportHeight();
+    const key = `${cssW}x${cssH}@${dpr}`;
+    if (key === sized) return; // bv. alleen de adresbalk die beweegt: niets herbouwen
+    sized = key;
+
+    // Elke pond-pixel is een geheel aantal schermpixels breed, anders schuiven randen en flikkeren sprites.
+    const deviceScale = clamp(Math.round(Math.max(2, cssW / 360) * dpr), Math.round(2 * dpr), Math.round(6 * dpr));
+    scale = deviceScale / dpr; // CSS-pixels per pond-pixel
+    W = Math.ceil(cssW / scale);
+    H = Math.ceil(cssH / scale);
     canvas!.width = W;
     canvas!.height = H;
-    canvas!.style.width = `${W * scale}px`;
-    canvas!.style.height = `${H * scale}px`;
+    canvas!.style.width = `${(W * deviceScale) / dpr}px`;
+    canvas!.style.height = `${(H * deviceScale) / dpr}px`;
     ctx.imageSmoothingEnabled = false;
 
     updateBlocked(); // vóór het plaatsen van eenden en afval
