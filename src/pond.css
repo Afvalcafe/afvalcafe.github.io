@@ -130,3 +130,10 @@ main a { pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
   .toast { animation: none; }
 }
+
+.confetti {
+  position: fixed;
+  top: 0;
+  z-index: 9;
+  pointer-events: none;
+}
