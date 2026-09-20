@@ -57,13 +57,14 @@ body.home { background: #fff; min-height: 100vh; }
 .site-header {
   position: relative;
   z-index: 1;
-  background: #157624;
+  background: #fff;
   text-align: center;
-  padding: 36px 16px;
+  padding: 16px 16px 0;
 }
+.logo { display: block; margin: 0 auto; width: min(420px, 80vw); height: auto; }
 .site-header h1 {
   margin: 0;
-  color: #fff;
+  color: #000;
   font-family: "Arial Black", "Segoe UI", system-ui, sans-serif;
   font-weight: 900;
   font-size: clamp(2rem, 6vw, 3.4rem);
