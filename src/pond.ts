@@ -1,13 +1,14 @@
-// Pixel-art vijver: meerkoeten, zwanen, algen die tijdelijke sporen krijgen en klikbaar zwerfafval.
+// Pixel-art vijver: eenden, meerkoeten, zwanen, algen die tijdelijke sporen krijgen en klikbaar zwerfafval.
 // Alles wordt op een laag-resolutie canvas getekend en met CSS opgeschaald (pixelated).
 
 import '@fontsource/press-start-2p';
 import './pond.css';
 
+const DUCK_COUNT = 3;
 const COOT_COUNT = 4;
 const SWAN_COUNT = 2;
 const BIRD_COUNT = 2;
-const LITTER_COUNT = 8;
+const LITTER_COUNT = 28;
 const ALGAE_REGROW = 0.18; // dekking per seconde
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -69,6 +70,7 @@ const GLYPHS: Record<string, string[]> = {
   ' ': ['00', '00', '00', '00', '00'],
 };
 const INK = '#16301a';
+const DUCK_WORDS = ['KWAK KWAK!'];
 const COOT_WORDS = ['KEP!', 'KOEK!', 'KEP KEP!'];
 const SWAN_WORDS = ['HISS!', 'SSS!', 'PSST!'];
 const BIRD_WORDS = ['PIEP!', 'TWEET!', 'PIEP PIEP!'];
@@ -76,7 +78,8 @@ const BUBBLE_SECONDS = 1.4;
 
 async function start(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d', { willReadFrequently: false })!;
-  const [cootImg, swanImg, birdImg, sparkleImg, ...litterImgs] = await Promise.all([
+  const [duckImg, cootImg, swanImg, birdImg, sparkleImg, ...litterImgs] = await Promise.all([
+    loadSprite('eend'),
     loadSprite('meerkoet'),
     loadSprite('zwaan'),
     loadSprite('bird'),
@@ -190,6 +193,7 @@ async function start(canvas: HTMLCanvasElement) {
     }
     if (ducks.length === 0) {
       const kinds = [
+        ...Array.from({ length: DUCK_COUNT }, () => ({ img: duckImg, words: DUCK_WORDS })),
         ...Array.from({ length: COOT_COUNT }, () => ({ img: cootImg, words: COOT_WORDS })),
         ...Array.from({ length: SWAN_COUNT }, () => ({ img: swanImg, words: SWAN_WORDS })),
         ...Array.from({ length: BIRD_COUNT }, () => ({ img: birdImg, words: BIRD_WORDS })),
