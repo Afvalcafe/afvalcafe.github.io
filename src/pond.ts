@@ -90,6 +90,30 @@ function showToast(text: string) {
   setTimeout(() => el.remove(), TOAST_SECONDS * 1000);
 }
 
+// Sprites worden in software in de pixelbuffer geschreven (geen drawImage): geen bemonstering door
+// de GPU, dus geen halve pixels of ontbrekende kolommen, en het hele beeld gaat in één keer naar het scherm.
+interface Bitmap { w: number; h: number; px: Uint32Array }
+const bitmapCache = new Map<HTMLImageElement, { normal: Bitmap; flipped: Bitmap }>();
+
+function bitmapsOf(img: HTMLImageElement) {
+  let b = bitmapCache.get(img);
+  if (!b) {
+    const w = img.width;
+    const h = img.height;
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const cx = c.getContext('2d', { willReadFrequently: true })!;
+    cx.drawImage(img, 0, 0);
+    const px = new Uint32Array(cx.getImageData(0, 0, w, h).data.buffer);
+    const flipped = new Uint32Array(px.length);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) flipped[y * w + x] = px[y * w + (w - 1 - x)];
+    b = { normal: { w, h, px }, flipped: { w, h, px: flipped } };
+    bitmapCache.set(img, b);
+  }
+  return b;
+}
+
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -443,6 +467,37 @@ async function start(canvas: HTMLCanvasElement) {
 
   resize();
 
+  function blit(bmp: Bitmap, x0: number, y0: number, alpha = 1) {
+    for (let y = 0; y < bmp.h; y++) {
+      const dy = y0 + y;
+      if (dy < 0 || dy >= H) continue;
+      for (let x = 0; x < bmp.w; x++) {
+        const dx = x0 + x;
+        if (dx < 0 || dx >= W) continue;
+        const src = bmp.px[y * bmp.w + x];
+        const sa = (src >>> 24) / 255;
+        if (sa === 0) continue;
+        const i = dy * W + dx;
+        if (sa === 1 && alpha === 1) {
+          pixels[i] = src;
+        } else {
+          const a = sa * alpha;
+          const dst = pixels[i];
+          const r = (src & 255) * a + (dst & 255) * (1 - a);
+          const g = ((src >>> 8) & 255) * a + ((dst >>> 8) & 255) * (1 - a);
+          const b = ((src >>> 16) & 255) * a + ((dst >>> 16) & 255) * (1 - a);
+          pixels[i] = (0xff000000 | (Math.round(b) << 16) | (Math.round(g) << 8) | Math.round(r)) >>> 0;
+        }
+      }
+    }
+  }
+
+  function fillRectPx(x: number, y: number, w: number, h: number, color: number) {
+    for (let yy = Math.max(0, y); yy < Math.min(H, y + h); yy++) {
+      for (let xx = Math.max(0, x); xx < Math.min(W, x + w); xx++) pixels[yy * W + xx] = color;
+    }
+  }
+
   function textWidth(text: string): number {
     return [...text].reduce((w, ch) => w + (GLYPHS[ch]?.[0].length ?? 0) + 1, -1);
   }
@@ -456,14 +511,13 @@ async function start(canvas: HTMLCanvasElement) {
     const bx = clamp(cx - Math.floor(w / 2), 3, W - w - 3);
     const by = Math.max(3, Math.round(d.y) - 12 - h);
     const px = (x: number, y: number, pw: number, ph: number, color: string) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, pw, ph);
+      fillRectPx(x, y, pw, ph, abgr(color));
     };
     px(bx - 1, by - 1, w + 2, h + 2, INK);
-    px(bx, by, w, h, '#fff');
+    px(bx, by, w, h, '#ffffff');
     // staartje richting de eend
     const tx = clamp(cx, bx + 2, bx + w - 3);
-    px(tx, by + h, 2, 2, '#fff');
+    px(tx, by + h, 2, 2, '#ffffff');
     px(tx - 1, by + h + 1, 1, 1, INK);
     px(tx + 2, by + h + 1, 1, 1, INK);
     px(tx, by + h + 2, 2, 1, INK);
@@ -513,32 +567,26 @@ async function start(canvas: HTMLCanvasElement) {
         }
       }
     }
-    ctx.putImageData(frame, 0, 0);
-
     const bob = (phase: number, amp: number) => (reduceMotion ? 0 : Math.round(Math.sin(time * 1.6 + phase) * amp));
     for (const p of pads) {
       ctx.drawImage(p.img, Math.round(p.x - p.img.width / 2), Math.round(p.y - p.img.height / 2) + bob(p.phase, 1));
     }
     for (const l of litter) {
-      ctx.drawImage(l.img, Math.round(l.x - l.img.width / 2), Math.round(l.y - l.img.height / 2) + bob(l.phase, 1));
+      const b = bitmapsOf(l.img).normal;
+      blit(b, Math.round(l.x - b.w / 2), Math.round(l.y - b.h / 2) + bob(l.phase, 1));
     }
     for (const d of ducks) {
       const flip = Math.cos(d.angle) < 0;
-      const dx = Math.round(d.x);
-      const dy = Math.round(d.y) + bob(d.phase, 1);
-      ctx.save();
-      ctx.translate(dx, dy);
-      if (flip) ctx.scale(-1, 1);
-      ctx.drawImage(d.img, -d.img.width / 2, -d.img.height / 2);
-      ctx.restore();
+      const bm = bitmapsOf(d.img);
+      const b = flip ? bm.flipped : bm.normal;
+      blit(b, Math.round(d.x) - Math.floor(b.w / 2), Math.round(d.y) + bob(d.phase, 1) - Math.floor(b.h / 2));
     }
     for (const d of ducks) if (d.bubble) drawBubble(d);
     sparkles = sparkles.filter((s) => (s.age += dt) < 0.5);
-    for (const s of sparkles) {
-      ctx.globalAlpha = 1 - s.age / 0.5;
-      ctx.drawImage(sparkleImg, Math.round(s.x - 8), Math.round(s.y - 8 - s.age * 10));
-    }
-    ctx.globalAlpha = 1;
+    const sparkle = bitmapsOf(sparkleImg).normal;
+    for (const s of sparkles) blit(sparkle, Math.round(s.x - 8), Math.round(s.y - 8 - s.age * 10), 1 - s.age / 0.5);
+
+    ctx.putImageData(frame, 0, 0); // het hele beeld in één keer
 
     requestAnimationFrame(tick);
   }
