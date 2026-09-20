@@ -47,7 +47,7 @@ main {
   padding: 20px 24px 8px;
   background: rgba(255, 255, 255, .9);
   box-shadow: 0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink);
-  pointer-events: none; /* afval en eenden eronder blijven klikbaar */
+  pointer-events: none; /* afval en vogels eronder blijven klikbaar */
 }
 main h1 { margin: 8px 0; font-size: 2.2rem; line-height: 1.2; color: #22502b; }
 .brand { display: block; margin: 0 0 8px; }

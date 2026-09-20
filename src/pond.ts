@@ -1,10 +1,11 @@
-// Pixel-art vijver: eenden, algen die tijdelijke sporen krijgen en klikbaar zwerfafval.
+// Pixel-art vijver: meerkoeten, zwanen, algen die tijdelijke sporen krijgen en klikbaar zwerfafval.
 // Alles wordt op een laag-resolutie canvas getekend en met CSS opgeschaald (pixelated).
 
 import '@fontsource/press-start-2p';
 import './pond.css';
 
-const DUCK_COUNT = 4;
+const COOT_COUNT = 4;
+const SWAN_COUNT = 2;
 const BIRD_COUNT = 2;
 const LITTER_COUNT = 8;
 const ALGAE_REGROW = 0.18; // dekking per seconde
@@ -54,10 +55,13 @@ const GLYPHS: Record<string, string[]> = {
   A: ['010', '101', '111', '101', '101'],
   C: ['111', '100', '100', '100', '111'],
   E: ['111', '100', '110', '100', '111'],
+  H: ['101', '101', '111', '101', '101'],
   I: ['111', '010', '010', '010', '111'],
   K: ['101', '101', '110', '101', '101'],
+  O: ['111', '101', '101', '101', '111'],
   P: ['111', '101', '111', '100', '100'],
   Q: ['111', '101', '101', '111', '001'],
+  S: ['111', '100', '111', '001', '111'],
   T: ['111', '010', '010', '010', '010'],
   U: ['101', '101', '101', '101', '111'],
   W: ['10001', '10001', '10101', '11011', '10001'],
@@ -65,14 +69,16 @@ const GLYPHS: Record<string, string[]> = {
   ' ': ['00', '00', '00', '00', '00'],
 };
 const INK = '#16301a';
-const DUCK_WORDS = ['KWAK!', 'QUACK!', 'KWAK KWAK!'];
+const COOT_WORDS = ['KEP!', 'KOEK!', 'KEP KEP!'];
+const SWAN_WORDS = ['HISS!', 'SSS!', 'PSST!'];
 const BIRD_WORDS = ['PIEP!', 'TWEET!', 'PIEP PIEP!'];
 const BUBBLE_SECONDS = 1.4;
 
 async function start(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d', { willReadFrequently: false })!;
-  const [duckImg, birdImg, sparkleImg, ...litterImgs] = await Promise.all([
-    loadSprite('duck'),
+  const [cootImg, swanImg, birdImg, sparkleImg, ...litterImgs] = await Promise.all([
+    loadSprite('meerkoet'),
+    loadSprite('zwaan'),
     loadSprite('bird'),
     loadSprite('sparkles'),
     ...LITTER_SPRITES.map(loadSprite),
@@ -184,7 +190,8 @@ async function start(canvas: HTMLCanvasElement) {
     }
     if (ducks.length === 0) {
       const kinds = [
-        ...Array.from({ length: DUCK_COUNT }, () => ({ img: duckImg, words: DUCK_WORDS })),
+        ...Array.from({ length: COOT_COUNT }, () => ({ img: cootImg, words: COOT_WORDS })),
+        ...Array.from({ length: SWAN_COUNT }, () => ({ img: swanImg, words: SWAN_WORDS })),
         ...Array.from({ length: BIRD_COUNT }, () => ({ img: birdImg, words: BIRD_WORDS })),
       ];
       ducks = kinds.map((kind) => {
