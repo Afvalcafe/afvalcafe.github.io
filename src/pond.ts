@@ -569,7 +569,8 @@ async function start(canvas: HTMLCanvasElement) {
     }
     const bob = (phase: number, amp: number) => (reduceMotion ? 0 : Math.round(Math.sin(time * 1.6 + phase) * amp));
     for (const p of pads) {
-      ctx.drawImage(p.img, Math.round(p.x - p.img.width / 2), Math.round(p.y - p.img.height / 2) + bob(p.phase, 1));
+      const b = bitmapsOf(p.img).normal;
+      blit(b, Math.round(p.x - b.w / 2), Math.round(p.y - b.h / 2) + bob(p.phase, 1));
     }
     for (const l of litter) {
       const b = bitmapsOf(l.img).normal;
