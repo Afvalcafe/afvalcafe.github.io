@@ -1,0 +1,25 @@
+#pond {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  display: block;
+  image-rendering: pixelated;
+}
+
+.counter {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2;
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    -2px 0 #16301a, 2px 0 #16301a, 0 -2px #16301a, 0 2px #16301a,
+    -2px -2px #16301a, 2px -2px #16301a, -2px 2px #16301a, 2px 2px #16301a,
+    0 4px #16301a;
+  pointer-events: none;
+  user-select: none;
+}

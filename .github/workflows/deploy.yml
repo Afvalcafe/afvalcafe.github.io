@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # De bestaande site wordt ongewijzigd gekopieerd; alleen pond.html komt uit de Vite-build.
+      - name: Assemble site
+        run: |
+          mkdir site
+          rsync -a \
+            --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='dist' --exclude='site' \
+            --exclude='src' --exclude='public' --exclude='pond.html' \
+            --exclude='package.json' --exclude='package-lock.json' --exclude='tsconfig.json' --exclude='vite.config.ts' \
+            ./ site/
+          cp -r dist/. site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
