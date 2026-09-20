@@ -1,4 +1,4 @@
-// Pixel-art vijver: eenden, meerkoeten, zwanen, algen die tijdelijke sporen krijgen en klikbaar zwerfafval.
+// Pixel-art vijver: eenden, waterlelies, meerkoeten, zwanen, algen die tijdelijke sporen krijgen en klikbaar zwerfafval.
 // Alles wordt op een laag-resolutie canvas getekend en met CSS opgeschaald (pixelated).
 
 import '@fontsource/press-start-2p';
@@ -9,6 +9,8 @@ const COOT_COUNT = 4;
 const SWAN_COUNT = 2;
 const BIRD_COUNT = 2;
 const LITTER_COUNT = 16;
+// Waterlelies drijven langzaam rond; een deel heeft een witte bloem.
+const PAD_SPRITES = ['waterlelie', 'waterlelie', 'waterlelie', 'waterlelie', 'lelieblad', 'lelieblad', 'lelieblad2', 'lelieblad2'];
 const MAX_PER_KIND = 3; // nooit meer dan 3 van hetzelfde soort afval tegelijk
 const MILESTONE_FIRST = 10; // eerste melding bij 10, daarna na elke 20 extra (30, 50, ...)
 const MILESTONE_EVERY = 20;
@@ -118,14 +120,18 @@ const BUBBLE_SECONDS = 1.4;
 
 async function start(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d', { willReadFrequently: false })!;
-  const [duckImg, cootImg, swanImg, birdImg, sparkleImg, ...litterImgs] = await Promise.all([
+  const [duckImg, cootImg, swanImg, birdImg, sparkleImg, ...loaded] = await Promise.all([
     loadSprite('eend'),
     loadSprite('meerkoet'),
     loadSprite('zwaan'),
     loadSprite('bird'),
     loadSprite('sparkles'),
     ...LITTER_SPRITES.map(loadSprite),
+    ...[...new Set(PAD_SPRITES)].map(loadSprite),
   ]);
+
+  const litterImgs = loaded.slice(0, LITTER_SPRITES.length);
+  const padByName = new Map([...new Set(PAD_SPRITES)].map((n, i) => [n, loaded[LITTER_SPRITES.length + i]]));
 
   const water = WATER.map(abgr);
   const algae = ALGAE.map(abgr);
@@ -151,6 +157,7 @@ async function start(canvas: HTMLCanvasElement) {
 
   let ducks: Duck[] = [];
   let litter: Litter[] = [];
+  let pads: Litter[] = []; // waterlelies: zelfde beweging als afval, maar veel trager en niet klikbaar
   let sparkles: Sparkle[] = [];
   let respawn: number[] = [];
   // Teller blijft bewaard tijdens het bladeren door de site.
@@ -252,6 +259,7 @@ async function start(canvas: HTMLCanvasElement) {
         };
       });
     }
+    if (pads.length === 0) for (const name of PAD_SPRITES) pads.push(newPad(padByName.get(name)!));
     if (litter.length === 0) for (let i = 0; i < LITTER_COUNT; i++) litter.push(newLitter());
   }
 
@@ -264,6 +272,19 @@ async function start(canvas: HTMLCanvasElement) {
 
   const inBlocked = (x: number, y: number, pad: number) =>
     blocked.some((r) => x > r.x0 - pad && x < r.x1 + pad && y > r.y0 - pad && y < r.y1 + pad);
+
+  function newPad(img: HTMLImageElement): Litter {
+    let x = 0;
+    let y = 0;
+    for (let tries = 0; tries < 40; tries++) {
+      x = rand(20, W - 20);
+      y = rand(20, H - 20);
+      if (!inBlocked(x, y, img.width / 2)) break;
+    }
+    const a = rand(0, Math.PI * 2);
+    const s = rand(0.6, 1.6);
+    return { img, x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, phase: rand(0, 6) };
+  }
 
   function newLitter(): Litter {
     const free = litterImgs.filter((i) => litter.filter((l) => l.img === i).length < MAX_PER_KIND);
@@ -442,6 +463,7 @@ async function start(canvas: HTMLCanvasElement) {
 
     for (let i = 0; i < cover.length; i++) if (cover[i] < 1) cover[i] = Math.min(1, cover[i] + ALGAE_REGROW * dt);
     ducks.forEach((d) => updateDuck(d, dt));
+    pads.forEach((p) => updateLitter(p, dt));
     litter.forEach((l) => updateLitter(l, dt));
     respawn = respawn.map((t) => t - dt);
     while (respawn.some((t) => t <= 0)) {
@@ -468,6 +490,9 @@ async function start(canvas: HTMLCanvasElement) {
     ctx.putImageData(frame, 0, 0);
 
     const bob = (phase: number, amp: number) => (reduceMotion ? 0 : Math.round(Math.sin(time * 1.6 + phase) * amp));
+    for (const p of pads) {
+      ctx.drawImage(p.img, Math.round(p.x - p.img.width / 2), Math.round(p.y - p.img.height / 2) + bob(p.phase, 1));
+    }
     for (const l of litter) {
       ctx.drawImage(l.img, Math.round(l.x - l.img.width / 2), Math.round(l.y - l.img.height / 2) + bob(l.phase, 1));
     }
