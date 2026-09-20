@@ -81,7 +81,7 @@ async function start(canvas: HTMLCanvasElement) {
   const water = WATER.map(abgr);
   const algae = ALGAE.map(abgr);
   const counter = document.getElementById('litter-count');
-  const solid = ['.site-header', 'main', '.pond-title'].map((q) => document.querySelector(q)).filter(
+  const solid = ['main', '.pond-menu'].map((q) => document.querySelector(q)).filter(
     (el): el is Element => el !== null,
   );
 
@@ -97,8 +97,6 @@ async function start(canvas: HTMLCanvasElement) {
   let tone = new Float32Array(0); // kleurwaarde per pixel, 0..1
   let tonePhase = new Uint8Array(0); // gebied (0..15) dat op eigen tempo van kleur wisselt
   let waterColor = new Uint32Array(0);
-  let rowShift = new Int32Array(0); // per rij/kolom een paar pixels deining
-  let colShift = new Int32Array(0);
   let frame: ImageData;
   let pixels: Uint32Array;
 
@@ -106,7 +104,9 @@ async function start(canvas: HTMLCanvasElement) {
   let litter: Litter[] = [];
   let sparkles: Sparkle[] = [];
   let respawn: number[] = [];
-  let collected = 0;
+  // Teller blijft bewaard tijdens het bladeren door de site.
+  let collected = Number(sessionStorage.getItem('litter-collected')) || 0;
+  if (counter) counter.textContent = String(collected);
   let blocked: Rect[] = [];
 
   // Zachte, tegelbare ruis: willekeurige waarden op een grof raster, bilineair geïnterpoleerd.
@@ -152,8 +152,6 @@ async function start(canvas: HTMLCanvasElement) {
     updateBlocked(); // vóór het plaatsen van eenden en afval
     TW = Math.ceil(W / 48) * 48;
     TH = Math.ceil(H / 48) * 48;
-    rowShift = new Int32Array(H);
-    colShift = new Int32Array(W);
     const n = W * H;
     const tn = TW * TH;
     cover = new Float32Array(n).fill(1);
@@ -336,6 +334,7 @@ async function start(canvas: HTMLCanvasElement) {
     respawn.push(rand(2, 4));
     collected++;
     if (counter) counter.textContent = String(collected);
+    sessionStorage.setItem('litter-collected', String(collected));
     window.dispatchEvent(new CustomEvent('litter-cleared', { detail: { x: e.clientX, y: e.clientY, count: collected } }));
   });
   document.documentElement.addEventListener('pointerleave', () => (last = null));
@@ -396,24 +395,14 @@ async function start(canvas: HTMLCanvasElement) {
       litter.push(newLitter());
     }
 
-    // Het algenveld blijft op zijn plek, maar deint zachtjes (per rij/kolom een paar pixels)
-    // en verkleurt heel traag.
+    // Het algenveld blijft op zijn plek en verkleurt alleen heel traag.
     const drift = reduceMotion ? 0 : time;
-    for (let y = 0; y < H; y++) rowShift[y] = Math.round(1.6 * Math.sin(y * 0.06 + drift * 0.5) + 1.2 * Math.sin(y * 0.17 - drift * 0.8));
-    for (let x = 0; x < W; x++) colShift[x] = Math.round(1.6 * Math.sin(x * 0.05 - drift * 0.45) + 1.2 * Math.sin(x * 0.19 + drift * 0.7));
     for (let k = 0; k < 16; k++) shift[k] = 0.25 * Math.sin(drift * 0.15 + (k * Math.PI) / 8);
     const top = algae.length - 1;
     for (let y = 0; y < H; y++) {
-      const rs = rowShift[y];
       for (let x = 0; x < W; x++) {
-        let tx = x + rs;
-        let ty = y + colShift[x];
-        if (tx < 0) tx += TW;
-        else if (tx >= TW) tx -= TW;
-        if (ty < 0) ty += TH;
-        else if (ty >= TH) ty -= TH;
-        const j = ty * TW + tx;
         const i = y * W + x;
+        const j = y * TW + x;
         if (cover[i] * dens[j] > thr[j]) {
           const c = Math.floor((tone[j] + shift[tonePhase[j]]) * algae.length);
           pixels[i] = algae[c < 0 ? 0 : c > top ? top : c];

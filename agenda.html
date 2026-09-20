@@ -4,14 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agenda – Afval &amp; Café</title>
-  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="sub">
+  <canvas id="pond" aria-hidden="true"></canvas>
+
+  <nav class="pond-menu" aria-label="Menu">
+    <a href="over-ons.html">Over ons</a>
+    <a href="agenda.html" aria-current="page">Agenda</a>
+    <a href="doe-mee.html">Doe mee</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
   <main>
-    <nav><a class="back" href="index.html">← Home</a></nav>
+    <a class="brand" href="index.html"><img class="logo" src="images/logo.svg" alt="Afval &amp; Café – terug naar home"></a>
     <h1>Agenda</h1>
     <p>We prikken 1x per maand afval in Delft.</p>
     <p><em>Vul hier de eerstvolgende data, tijden en verzamelplekken in.</em></p>
   </main>
+
+  <div class="counter" aria-live="polite">Opgeruimd: <span id="litter-count">0</span></div>
+  <script type="module" src="/src/pond.ts"></script>
 </body>
 </html>

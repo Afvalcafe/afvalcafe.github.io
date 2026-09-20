@@ -25,13 +25,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # De bestaande site wordt ongewijzigd gekopieerd; alleen pond.html komt uit de Vite-build.
+      # Losse bestanden (bijv. images/) worden gekopieerd; de html-pagina's komen uit de Vite-build.
       - name: Assemble site
         run: |
           mkdir site
           rsync -a \
             --exclude='.git' --exclude='.github' --exclude='node_modules' --exclude='dist' --exclude='site' \
-            --exclude='src' --exclude='public' --exclude='pond.html' \
+            --exclude='src' --exclude='public' \
             --exclude='package.json' --exclude='package-lock.json' --exclude='tsconfig.json' --exclude='vite.config.ts' \
             ./ site/
           cp -r dist/. site/

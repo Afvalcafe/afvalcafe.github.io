@@ -1,11 +1,12 @@
+import { readdirSync } from 'node:fs';
 import { defineConfig } from 'vite';
 
-// Alleen de vijverpagina wordt gebouwd; de rest van de site blijft ongewijzigd (zie deploy-workflow).
+// Alle .html-pagina's in de hoofdmap worden gebouwd, ook nieuwe.
+const pages = readdirSync('.').filter((f) => f.endsWith('.html'));
+
 export default defineConfig({
   base: '/',
   build: {
-    rollupOptions: {
-      input: ['pond.html'],
-    },
+    rollupOptions: { input: pages },
   },
 });
