@@ -4,10 +4,9 @@
 import '@fontsource/press-start-2p';
 import './pond.css';
 
-const DUCK_COUNT = 3;
+const DUCK_COUNT = 4;
 const COOT_COUNT = 4;
 const SWAN_COUNT = 2;
-const BIRD_COUNT = 2;
 const LITTER_COUNT = 16;
 // Waterlelies drijven langzaam rond; een deel heeft een witte bloem.
 const PAD_SPRITES = ['waterlelie', 'waterlelie', 'waterlelie', 'waterlelie', 'lelieblad', 'lelieblad', 'lelieblad2', 'lelieblad2'];
@@ -115,16 +114,14 @@ const INK = '#16301a';
 const DUCK_WORDS = ['KWAK KWAK!'];
 const COOT_WORDS = ['KEP!', 'KOEK!', 'KEP KEP!'];
 const SWAN_WORDS = ['HISS!', 'SSS!', 'PSST!'];
-const BIRD_WORDS = ['PIEP!', 'TWEET!', 'PIEP PIEP!'];
 const BUBBLE_SECONDS = 1.4;
 
 async function start(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d', { willReadFrequently: false })!;
-  const [duckImg, cootImg, swanImg, birdImg, sparkleImg, ...loaded] = await Promise.all([
+  const [duckImg, cootImg, swanImg, sparkleImg, ...loaded] = await Promise.all([
     loadSprite('eend'),
     loadSprite('meerkoet'),
     loadSprite('zwaan'),
-    loadSprite('bird'),
     loadSprite('sparkles'),
     ...LITTER_SPRITES.map(loadSprite),
     ...[...new Set(PAD_SPRITES)].map(loadSprite),
@@ -243,7 +240,6 @@ async function start(canvas: HTMLCanvasElement) {
         ...Array.from({ length: DUCK_COUNT }, () => ({ img: duckImg, words: DUCK_WORDS })),
         ...Array.from({ length: COOT_COUNT }, () => ({ img: cootImg, words: COOT_WORDS })),
         ...Array.from({ length: SWAN_COUNT }, () => ({ img: swanImg, words: SWAN_WORDS })),
-        ...Array.from({ length: BIRD_COUNT }, () => ({ img: birdImg, words: BIRD_WORDS })),
       ];
       ducks = kinds.map((kind) => {
         let x = 0;
@@ -322,10 +318,23 @@ async function start(canvas: HTMLCanvasElement) {
   function updateDuck(d: Duck, dt: number) {
     d.turn = clamp(d.turn + rand(-1.5, 1.5) * dt * 2, -0.8, 0.8);
     d.angle += d.turn * dt;
+    // Zit het dier onder de tekstkaart, zwem dan naar de dichtstbijzijnde kant eruit.
+    const under = blocked.find((r) => d.x > r.x0 && d.x < r.x1 && d.y > r.y0 && d.y < r.y1);
+    if (under) {
+      const exits = [
+        { x: under.x0 - 10, y: d.y }, { x: under.x1 + 10, y: d.y },
+        { x: d.x, y: under.y0 - 10 }, { x: d.x, y: under.y1 + 10 },
+      ].map((o) => ({ x: clamp(o.x, 8, W - 8), y: clamp(o.y, 8, H - 8) }));
+      const to = exits.reduce((a, b) => (Math.hypot(a.x - d.x, a.y - d.y) <= Math.hypot(b.x - d.x, b.y - d.y) ? a : b));
+      let diff = Math.atan2(to.y - d.y, to.x - d.x) - d.angle;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      d.angle += clamp(diff, -1, 1) * dt * 4;
+    }
     const margin = 28;
     const edge = Math.max(margin - d.x, d.x - (W - margin), margin - d.y, d.y - (H - margin), 0) / margin;
     if (edge > 0) {
-      let diff = Math.atan2(H / 2 - d.y, W / 2 - d.x) - d.angle;
+      const cx = inBlocked(W / 2, H / 2, 0) ? (d.x < W / 2 ? W * 0.1 : W * 0.9) : W / 2;
+      let diff = Math.atan2(H / 2 - d.y, cx - d.x) - d.angle;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       d.angle += clamp(diff, -1, 1) * dt * 4 * Math.min(edge, 1);
     }
