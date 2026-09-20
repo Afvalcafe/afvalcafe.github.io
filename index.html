@@ -7,9 +7,136 @@
   <meta name="description" content="Afval prikken in Delft en daarna samen wat drinken in een café. Voor 20- tot 30-jarigen.">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <main>
+<body class="home">
+
+  <!-- Achtergrond: Delftse silhouetten (blijven staan) en zwerfafval (klikbaar) -->
+  <div class="bg" id="bg">
+
+    <!-- Delft -->
+    <svg class="icon" style="--x:2;--y:32;--w:9" viewBox="0 0 60 160" aria-hidden="true">
+      <!-- De Nieuwe Kerk -->
+      <polygon points="30,0 40,34 20,34"/>
+      <rect x="21" y="34" width="18" height="22" rx="2"/>
+      <polygon points="14,50 20,34 22,50"/><polygon points="46,50 40,34 38,50"/>
+      <rect x="12" y="50" width="36" height="14" rx="2"/>
+      <path fill-rule="evenodd" d="M16 64h28v96H16z M26 150v-30a4 4 0 0 1 8 0v30z"/>
+    </svg>
+
+    <svg class="icon" style="--x:84;--y:38;--w:13" viewBox="0 0 140 90" aria-hidden="true">
+      <!-- TU Delft bibliotheek: kegel op een plat dak -->
+      <polygon points="70,2 96,72 44,72"/>
+      <polygon points="0,88 30,72 110,72 140,88"/>
+    </svg>
+
+    <svg class="icon" style="--x:88;--y:78;--w:8" viewBox="0 0 100 90" aria-hidden="true">
+      <!-- Het Blauwe Hart -->
+      <path d="M50 88C20 62 4 46 4 26 4 12 15 2 28 2c10 0 18 6 22 14C54 8 62 2 72 2c13 0 24 10 24 24 0 20-16 36-46 62z"/>
+    </svg>
+
+    <svg class="icon" style="--x:6;--y:66;--w:12" viewBox="0 0 120 100" aria-hidden="true">
+      <!-- Oostpoort -->
+      <polygon points="14,0 28,34 0,34"/><polygon points="106,0 120,34 92,34"/>
+      <rect x="0" y="34" width="28" height="66" rx="2"/><rect x="92" y="34" width="28" height="66" rx="2"/>
+      <path fill-rule="evenodd" d="M28 52h64v48H28z M50 100V78a10 10 0 0 1 20 0v22z"/>
+      <polygon points="24,52 60,36 96,52"/>
+    </svg>
+
+    <svg class="icon" style="--x:70;--y:88;--w:6" viewBox="0 0 60 160" aria-hidden="true">
+      <polygon points="30,0 40,34 20,34"/>
+      <rect x="21" y="34" width="18" height="22" rx="2"/>
+      <rect x="12" y="50" width="36" height="14" rx="2"/>
+      <path fill-rule="evenodd" d="M16 64h28v96H16z M26 150v-30a4 4 0 0 1 8 0v30z"/>
+    </svg>
+
+    <svg class="icon" style="--x:22;--y:88;--w:10" viewBox="0 0 120 100" aria-hidden="true">
+      <polygon points="14,0 28,34 0,34"/><polygon points="106,0 120,34 92,34"/>
+      <rect x="0" y="34" width="28" height="66" rx="2"/><rect x="92" y="34" width="28" height="66" rx="2"/>
+      <path fill-rule="evenodd" d="M28 52h64v48H28z M50 100V78a10 10 0 0 1 20 0v22z"/>
+      <polygon points="24,52 60,36 96,52"/>
+    </svg>
+
+    <svg class="icon" style="--x:46;--y:92;--w:11" viewBox="0 0 140 90" aria-hidden="true">
+      <polygon points="70,2 96,72 44,72"/>
+      <polygon points="0,88 30,72 110,72 140,88"/>
+    </svg>
+
+    <svg class="icon" style="--x:3;--y:12;--w:5" viewBox="0 0 100 90" aria-hidden="true">
+      <path d="M50 88C20 62 4 46 4 26 4 12 15 2 28 2c10 0 18 6 22 14C54 8 62 2 72 2c13 0 24 10 24 24 0 20-16 36-46 62z"/>
+    </svg>
+
+    <!-- Zwerfafval -->
+    <button class="litter" style="--x:14;--y:52;--w:4;--r:-15" aria-label="Ruim op: appelklokhuis">
+      <svg viewBox="0 0 40 42" aria-hidden="true">
+        <path d="M12 9C8 13 9 19 12 23c1 4-1 8 2 11 3 3 9 3 12 0 3-3 1-7 2-11 3-4 4-10 0-14-4 2-12 2-16 0z" fill="#f1d48a"/>
+        <path d="M12 9c4 2 12 2 16 0-1 3-2 4-4 5-3 1-7 1-10 0-1-1-2-3-2-5z" fill="#b8322f"/>
+        <path d="M14 34c3 3 9 3 12 0-1 3-3 5-6 5s-5-2-6-5z" fill="#b8322f"/>
+        <path d="M20 9c0-3 1-5 3-7" stroke="#6b4423" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="18" cy="24" rx="1.4" ry="2.2" fill="#5a3a1c"/><ellipse cx="23" cy="24" rx="1.4" ry="2.2" fill="#5a3a1c"/>
+      </svg>
+    </button>
+
+    <button class="litter" style="--x:30;--y:36;--w:3;--r:20" aria-label="Ruim op: plastic flesje">
+      <svg viewBox="0 0 24 52" aria-hidden="true">
+        <rect x="8.5" y="0" width="7" height="5" rx="1" fill="#2b7fd6"/>
+        <rect x="9" y="5" width="6" height="7" fill="#b7e2f2"/>
+        <path d="M9 12C3 15 4 20 4 26v18a5 5 0 0 0 5 5h6a5 5 0 0 0 5-5V26c0-6 1-11-5-14z" fill="#9fd8ef"/>
+        <rect x="4" y="26" width="16" height="11" fill="#2fa35f"/>
+      </svg>
+    </button>
+
+    <button class="litter" style="--x:62;--y:34;--w:4;--r:0" aria-label="Ruim op: propje plastic">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <polygon points="6,16 12,6 22,4 32,8 37,18 34,30 24,37 12,35 4,27" fill="#e4eef3" stroke="#8fb0c2" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M12 6l6 12 14-10M18 18l-6 17M18 18l16 12M4 27l14-9" stroke="#8fb0c2" stroke-width="1.2" fill="none"/>
+      </svg>
+    </button>
+
+    <button class="litter" style="--x:76;--y:60;--w:3;--r:35" aria-label="Ruim op: schroef">
+      <svg viewBox="0 0 44 14" aria-hidden="true">
+        <path d="M0 1h6a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H0z" fill="#7d8590"/>
+        <polygon points="9,4 40,6.5 44,7 40,7.5 9,10" fill="#9aa2ad"/>
+        <path d="M14 4v6M19 4.4v5.2M24 4.8v4.4M29 5.2v3.6M34 5.6v2.8" stroke="#5d646d" stroke-width="1.2"/>
+      </svg>
+    </button>
+
+    <button class="litter" style="--x:50;--y:58;--w:2.6;--r:-25" aria-label="Ruim op: batterij">
+      <svg viewBox="0 0 22 42" aria-hidden="true">
+        <rect x="7" y="0" width="8" height="5" rx="1" fill="#8a8f98"/>
+        <rect x="1" y="4" width="20" height="37" rx="3" fill="#e5b400"/>
+        <rect x="1" y="4" width="20" height="9" fill="#1f1f1f"/>
+        <path d="M11 20v10M6 25h10" stroke="#1f1f1f" stroke-width="2.4"/>
+      </svg>
+    </button>
+
+    <button class="litter" style="--x:40;--y:76;--w:5;--r:12" aria-label="Ruim op: sigarettenpeuken">
+      <svg viewBox="0 0 50 22" aria-hidden="true">
+        <g><rect x="1" y="2" width="16" height="6" rx="1.5" fill="#e59b3c"/><rect x="17" y="2" width="24" height="6" rx="1.5" fill="#f4f1ea"/><rect x="41" y="2" width="6" height="6" rx="1.5" fill="#8a8580"/></g>
+        <g transform="translate(4 12)"><rect x="1" y="2" width="14" height="6" rx="1.5" fill="#e59b3c"/><rect x="15" y="2" width="16" height="6" rx="1.5" fill="#f4f1ea"/><rect x="31" y="2" width="6" height="6" rx="1.5" fill="#8a8580"/></g>
+      </svg>
+    </button>
+
+    <button class="litter" style="--x:92;--y:52;--w:3.2;--r:18" aria-label="Ruim op: blikje">
+      <svg viewBox="0 0 26 42" aria-hidden="true">
+        <rect x="2" y="4" width="22" height="34" rx="3" fill="#d94a3a"/>
+        <rect x="2" y="16" width="22" height="9" fill="#f3f3f0"/>
+        <ellipse cx="13" cy="4" rx="11" ry="3" fill="#c7ccd1"/><ellipse cx="13" cy="38" rx="11" ry="3" fill="#b93d2f"/>
+      </svg>
+    </button>
+
+    <button class="litter" style="--x:18;--y:76;--w:3.6;--r:-8" aria-label="Ruim op: bananenschil">
+      <svg viewBox="0 0 44 36" aria-hidden="true">
+        <path d="M3 8c8 2 16 8 20 18 4-8 10-14 18-16-2 12-10 22-20 24C11 32 4 22 3 8z" fill="#f2cf3c"/>
+        <path d="M3 8l4-4M41 10l-1-5" stroke="#6b4423" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="16" cy="20" r="1.2" fill="#8a6a1c"/><circle cx="29" cy="22" r="1.2" fill="#8a6a1c"/>
+      </svg>
+    </button>
+  </div>
+
+  <header class="site-header">
     <h1>Afval <span class="amp">&amp;</span> Café</h1>
+  </header>
+
+  <main>
     <p class="lead">Tussen de 20-30 jaar? Wij prikken 1x per maand afval en drinken daarna samen wat in een café. Leer nieuwe mensen kennen en doe ondertussen iets goeds voor de Delftse natuur! 🎉🌍🌲</p>
     <img class="hero" src="images/hero.jpg" alt="Bos met witte silhouetten van een vuilniszak, een mok en een afvalprikker">
     <div class="buttons">
@@ -18,6 +145,39 @@
       <a class="btn" href="doe-mee.html">Doe mee</a>
       <a class="btn" href="contact.html">Contact</a>
     </div>
+    <p class="hint">Tip: zie je zwerfafval op de achtergrond? Klik het weg! 🧹</p>
   </main>
+
+  <script>
+    (function () {
+      var colors = ['#2f9be0', '#f5b800', '#7dc95e', '#e8563f', '#b06ad9', '#ff8fb1'];
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function confetti() {
+        var count = reduce ? 0 : 90;
+        for (var i = 0; i < count; i++) {
+          var p = document.createElement('i');
+          p.className = 'confetti';
+          var w = 6 + Math.random() * 6;
+          p.style.cssText = 'left:' + Math.random() * 100 + 'vw;width:' + w + 'px;height:' + w * (0.5 + Math.random() * 0.8) + 'px;background:' + colors[i % colors.length] + ';border-radius:' + (Math.random() < 0.3 ? '50%' : '1px');
+          document.body.appendChild(p);
+          var drift = (Math.random() - 0.5) * 200;
+          var anim = p.animate([
+            { transform: 'translate(0,-20px) rotate(0deg)', opacity: 1 },
+            { transform: 'translate(' + drift + 'px,105vh) rotate(' + (360 + Math.random() * 720) + 'deg)', opacity: 1 }
+          ], { duration: 2200 + Math.random() * 2200, delay: Math.random() * 500, easing: 'cubic-bezier(.3,.6,.5,1)', fill: 'forwards' });
+          anim.onfinish = (function (el) { return function () { el.remove(); }; })(p);
+        }
+      }
+
+      document.querySelectorAll('.litter').forEach(function (el) {
+        el.addEventListener('click', function () {
+          el.classList.add('pop');
+          setTimeout(function () { el.remove(); }, 250);
+          confetti();
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

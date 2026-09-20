@@ -51,3 +51,71 @@ h1 .amp { color: var(--yellow); }
 nav a.back { color: var(--green); font-weight: bold; text-decoration: none; }
 nav a.back:hover { text-decoration: underline; }
 footer { margin-top: 48px; font-size: .9rem; opacity: .7; }
+
+/* ---------- Homepagina ---------- */
+body.home { background: #fff; min-height: 100vh; }
+.site-header {
+  position: relative;
+  z-index: 1;
+  background: #157624;
+  text-align: center;
+  padding: 36px 16px;
+}
+.site-header h1 {
+  margin: 0;
+  color: #fff;
+  font-family: "Arial Black", "Segoe UI", system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(2rem, 6vw, 3.4rem);
+}
+.site-header h1 .amp { color: #fff; }
+.home main {
+  position: relative;
+  z-index: 1;
+  pointer-events: none; /* afval eronder blijft klikbaar */
+}
+.home main .btn, .home main a { pointer-events: auto; }
+.hint { text-align: center; font-size: .95rem; opacity: .7; margin-top: 32px; }
+
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.icon, .litter {
+  position: absolute;
+  left: calc(var(--x) * 1%);
+  top: calc(var(--y) * 1%);
+  width: calc(var(--w) * 1vw);
+  min-width: 28px;
+  height: auto;
+}
+.icon { fill: #16846b; }
+.litter {
+  transform: rotate(calc(var(--r) * 1deg));
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  transition: transform .2s, opacity .2s;
+  min-width: 30px;
+}
+.litter svg { display: block; width: 100%; height: auto; }
+.litter:hover, .litter:focus-visible {
+  transform: rotate(calc(var(--r) * 1deg)) scale(1.25);
+  outline: none;
+}
+.litter.pop { transform: scale(0) rotate(90deg); opacity: 0; }
+
+.confetti {
+  position: fixed;
+  top: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+@media (max-width: 800px) {
+  .icon { opacity: .35; }
+  .icon, .litter { min-width: 34px; }
+}
