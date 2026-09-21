@@ -2,6 +2,7 @@
 // Alles wordt op een laag-resolutie canvas getekend en met CSS opgeschaald (pixelated).
 
 import '@fontsource/press-start-2p';
+import '@fontsource/eb-garamond/500.css';
 import './pond.css';
 import './menu';
 
@@ -9,13 +10,22 @@ const DUCK_COUNT = 4;
 const COOT_COUNT = 4;
 const SWAN_COUNT = 2;
 const LITTER_COUNT = 16;
-// Waterlelies drijven langzaam rond; een deel heeft een witte bloem.
+// Waterlelies drijven langzaam rond; klik je erop, dan bloeit er tijdelijk een witte bloem.
 const PAD_SPRITES = ['waterlelie', 'waterlelie', 'waterlelie', 'waterlelie', 'lelieblad', 'lelieblad', 'lelieblad2', 'lelieblad2'];
 const MAX_PER_KIND = 3; // nooit meer dan 3 van hetzelfde soort afval tegelijk
 const MILESTONE_FIRST = 10; // eerste melding bij 10, daarna na elke 20 extra (30, 50, ...)
 const MILESTONE_EVERY = 20;
-const MILESTONE_TEXT = 'Wauw wat ben jij hier goed in! Doe je mee met de volgende Afval & Café?';
-const TOAST_SECONDS = 8;
+// Meldingen worden steeds enthousiaster en beginnen daarna weer van voren ({n} = aantal opgeruimd).
+const MILESTONE_MESSAGES = [
+  'Wauw wat ben jij hier goed in! Doe je mee met de volgende Afval & Café?',
+  'Al {n} stuks afval opgeruimd?! Wij hebben jou echt nodig in ons team!',
+  '{n} stuks! Jij bent een echte held van de Delftse natuur. Kom eens meeprikken!',
+  '{n} al?! Jij hoort gewoon bij Afval & Café. Stuur ons een mailtje en prik mee!',
+  'Onvoorstelbaar: {n} stuks! Jij bent de afvalkampioen van de vijver. Kom langs!',
+];
+const CONTACT_EMAIL = 'afvalcafe@pm.me';
+const TOAST_SECONDS = 15; // sluit vanzelf, of eerder met het kruisje
+const BLOOM_SECONDS = 8; // zo lang blijft een bloem staan
 const CONFETTI_COLORS = ['#2f9be0', '#f5b800', '#7dc95e', '#e8563f', '#b06ad9', '#ff8fb1'];
 const ALGAE_REGROW = 0.18; // dekking per seconde
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,6 +34,22 @@ const WATER = ['#3b8bb0', '#3f92b6', '#4599bd'];
 const ALGAE = ['#2f6b2a', '#3f8232', '#519a3a', '#69b045', '#86c452'];
 // Al het afval is 16x16 zodat het even groot is.
 const LITTER_SPRITES = ['zak', 'batterij', 'schoen', 'fles', 'beker', 'chips', 'sigaret'];
+// Na een klik op een peuk of batterij vertelt de dichtstbijzijnde vogel soms een weetje. Per soort afval een lijstje.
+// Cijfers zijn schattingen uit gangbare bronnen; vandaar "wel" en "kan".
+const FACT_SECONDS = 7;
+const FACT_CHANCE = 0.35; // kans per klik, zodat het speciaal blijft
+const FACTS: Record<string, string[]> = {
+  sigaret: [
+    'Eén sigarettenpeuk kan tot wel 1000 liter water vervuilen!',
+    'Een peuk ligt 12 tot 15 jaar in het water. Het filter is namelijk plastic!',
+    'Er zijn peuken gevonden in de magen van vissen en vogels. Niet lekker!',
+  ],
+  batterij: [
+    'Sommige stoffen in batterijen zijn schadelijk voor de natuur. Lever hem in!',
+    'Winkels die batterijen verkopen, moeten lege batterijen terugnemen!',
+    'Uit lege batterijen worden nikkel en koper teruggewonnen voor nieuwe batterijen!',
+  ],
+};
 
 interface Rect { x0: number; y0: number; x1: number; y1: number }
 interface Bubble { text: string; age: number }
@@ -33,7 +59,7 @@ interface Duck {
   x: number; y: number; angle: number; turn: number; speed: number; phase: number;
   bubble: Bubble | null;
 }
-interface Litter { img: HTMLImageElement; x: number; y: number; vx: number; vy: number; phase: number }
+interface Litter { img: HTMLImageElement; x: number; y: number; vx: number; vy: number; phase: number; bloom?: number }
 interface Sparkle { x: number; y: number; age: number }
 
 const canvas = document.getElementById('pond') as HTMLCanvasElement | null;
@@ -78,16 +104,40 @@ function confetti(count: number) {
 
 const isMilestone = (n: number) => n === MILESTONE_FIRST || (n > MILESTONE_FIRST && (n - MILESTONE_FIRST) % MILESTONE_EVERY === 0);
 
-// Melding blijft TOAST_SECONDS staan en verdwijnt dan vanzelf; confetti valt de hele tijd mee.
-function showToast(text: string) {
-  for (let s = 0; s < TOAST_SECONDS - 2; s += 2) setTimeout(() => confetti(60), s * 1000);
+// Melding met mailadres en kruisje. Sluit na TOAST_SECONDS vanzelf; de confetti valt de eerste seconden mee.
+function showToast(n: number) {
+  document.querySelector('.toast')?.remove();
+  const index = n === MILESTONE_FIRST ? 0 : (n - MILESTONE_FIRST) / MILESTONE_EVERY;
   const el = document.createElement('div');
   el.className = 'toast';
-  el.setAttribute('role', 'status');
-  el.textContent = text;
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-label', 'Bericht van Afval & Café');
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'toast-close';
+  close.setAttribute('aria-label', 'Sluiten');
+  close.textContent = 'X';
+  const text = document.createElement('p');
+  text.textContent = MILESTONE_MESSAGES[index % MILESTONE_MESSAGES.length].replace('{n}', String(n));
+  const mail = document.createElement('a');
+  mail.className = 'toast-mail';
+  mail.href = `mailto:${CONTACT_EMAIL}`;
+  mail.textContent = CONTACT_EMAIL;
+  el.append(close, text, mail);
   document.body.appendChild(el);
-  setTimeout(() => el.classList.add('toast-out'), TOAST_SECONDS * 1000 - 400);
-  setTimeout(() => el.remove(), TOAST_SECONDS * 1000);
+
+  const timers: number[] = [];
+  for (let s = 0; s < 6; s += 2) timers.push(window.setTimeout(() => confetti(60), s * 1000));
+  const sluit = () => {
+    timers.forEach(clearTimeout);
+    document.removeEventListener('keydown', onKey);
+    el.classList.add('toast-out');
+    window.setTimeout(() => el.remove(), 400);
+  };
+  const onKey = (e: KeyboardEvent) => e.key === 'Escape' && sluit();
+  document.addEventListener('keydown', onKey);
+  close.addEventListener('click', sluit);
+  timers.push(window.setTimeout(sluit, TOAST_SECONDS * 1000));
 }
 
 // Sprites worden in software in de pixelbuffer geschreven (geen drawImage): geen bemonstering door
@@ -143,11 +193,13 @@ const BUBBLE_SECONDS = 1.4;
 
 async function start(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d', { willReadFrequently: false })!;
-  const [duckImg, cootImg, swanImg, sparkleImg, ...loaded] = await Promise.all([
+  const [duckImg, cootImg, swanImg, sparkleImg, bloomImg, budImg, ...loaded] = await Promise.all([
     loadSprite('eend'),
     loadSprite('meerkoet'),
     loadSprite('zwaan'),
     loadSprite('sparkles'),
+    loadSprite('bloem'),
+    loadSprite('knop'),
     ...LITTER_SPRITES.map(loadSprite),
     ...[...new Set(PAD_SPRITES)].map(loadSprite),
   ]);
@@ -323,12 +375,28 @@ async function start(canvas: HTMLCanvasElement) {
     return { img, x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, phase: rand(0, 6) };
   }
 
-  function newLitter(): Litter {
+  function newLitter(fromEdge = false): Litter {
     const free = litterImgs.filter((i) => litter.filter((l) => l.img === i).length < MAX_PER_KIND);
     const pool = free.length > 0 ? free : litterImgs;
     const img = pool[Math.floor(Math.random() * pool.length)];
+    const half = img.width / 2;
     let x = 0;
     let y = 0;
+    if (fromEdge) {
+      // Nieuw afval drijft van buiten het beeld naar binnen, niet ergens onder de tekstkaart of het menu.
+      let vx = 0;
+      let vy = 0;
+      for (let tries = 0; tries < 40; tries++) {
+        const side = Math.floor(Math.random() * 4);
+        const s = rand(3, 5);
+        if (side === 0) { x = -half - 1; y = rand(20, H - 20); vx = s; vy = rand(-1, 1); }
+        else if (side === 1) { x = W + half + 1; y = rand(20, H - 20); vx = -s; vy = rand(-1, 1); }
+        else if (side === 2) { x = rand(20, W - 20); y = -half - 1; vy = s; vx = rand(-1, 1); }
+        else { x = rand(20, W - 20); y = H + half + 1; vy = -s; vx = rand(-1, 1); }
+        if (!inBlocked(clamp(x, 25, W - 25), clamp(y, 25, H - 25), half)) break;
+      }
+      return { img, x, y, vx, vy, phase: rand(0, 6) };
+    }
     for (let tries = 0; tries < 40; tries++) {
       x = rand(20, W - 20);
       y = rand(20, H - 20);
@@ -360,6 +428,11 @@ async function start(canvas: HTMLCanvasElement) {
   const phone = window.matchMedia('(max-width: 699px)');
 
   function updateDuck(d: Duck, dt: number) {
+    // De vogel die een weetje vertelt zwemt even niet weg.
+    if (fact?.bird === d) {
+      if (d.bubble && (d.bubble.age += dt) > BUBBLE_SECONDS) d.bubble = null;
+      return;
+    }
     d.turn = clamp(d.turn + rand(-1.5, 1.5) * dt * 2, -0.8, 0.8);
     d.angle += d.turn * dt;
     // Zit het dier onder de tekstkaart, zwem dan naar de dichtstbijzijnde kant eruit.
@@ -398,9 +471,12 @@ async function start(canvas: HTMLCanvasElement) {
     const nx = l.x + l.vx * dt;
     const ny = l.y + l.vy * dt;
     const inside = inBlocked(l.x, l.y, pad);
-    if (nx < pad || nx > W - pad || (!inside && inBlocked(nx, l.y, pad))) l.vx = -l.vx;
+    // Alleen terugkaatsen bij de rand als het afval naar buiten drijft: van buiten naar binnen mag altijd.
+    const outX = (nx < pad && l.vx < 0) || (nx > W - pad && l.vx > 0);
+    const outY = (ny < pad && l.vy < 0) || (ny > H - pad && l.vy > 0);
+    if (outX || (!inside && inBlocked(nx, l.y, pad))) l.vx = -l.vx;
     else l.x = nx;
-    if (ny < pad || ny > H - pad || (!inside && inBlocked(l.x, ny, pad))) l.vy = -l.vy;
+    if (outY || (!inside && inBlocked(l.x, ny, pad))) l.vy = -l.vy;
     else l.y = ny;
   }
 
@@ -413,6 +489,15 @@ async function start(canvas: HTMLCanvasElement) {
     return -1;
   }
 
+  function padAt(x: number, y: number): Litter | undefined {
+    const slop = 2;
+    for (let i = pads.length - 1; i >= 0; i--) {
+      const p = pads[i];
+      if (Math.abs(x - p.x) <= p.img.width / 2 + slop && Math.abs(y - p.y) <= p.img.height / 2 + slop) return p;
+    }
+    return undefined;
+  }
+
   function duckAt(x: number, y: number): Duck | undefined {
     const slop = 3;
     for (let i = ducks.length - 1; i >= 0; i--) {
@@ -420,6 +505,57 @@ async function start(canvas: HTMLCanvasElement) {
       if (Math.abs(x - d.x) <= d.img.width / 2 + slop && Math.abs(y - d.y) <= d.img.height / 2 + slop) return d;
     }
     return undefined;
+  }
+
+  // Weetje in een HTML-wolkje (het pixellettertype heeft te weinig letters); het volgt de vogel die het vertelt.
+  const factsByImg = new Map(litterImgs.map((img, i) => [img, FACTS[LITTER_SPRITES[i]] ?? []]));
+  const FACT_KIND = new Map(litterImgs.map((img, i) => [img, LITTER_SPRITES[i]])); // ook het anker op de bronnenpagina
+  const lastFact = new Map<string[], number>();
+  let fact: { el: HTMLElement; bird: Duck; timer: number } | null = null;
+
+  function tellFact(item: Litter) {
+    const facts = factsByImg.get(item.img);
+    if (!facts || facts.length === 0 || ducks.length === 0 || Math.random() > FACT_CHANCE) return;
+    // Volgend weetje van dit soort afval, zodat je niet steeds hetzelfde hoort.
+    const next = ((lastFact.get(facts) ?? -1) + 1 + Math.floor(Math.random() * (facts.length - 1))) % facts.length;
+    lastFact.set(facts, next);
+    const bird = ducks.reduce((a, b) => (Math.hypot(a.x - item.x, a.y - item.y) <= Math.hypot(b.x - item.x, b.y - item.y) ? a : b));
+    bird.bubble = null; // geen kwak-wolkje óp het weetje
+    if (fact) {
+      clearTimeout(fact.timer);
+      fact.el.remove();
+    }
+    const el = document.createElement('div');
+    el.className = 'fact';
+    el.setAttribute('role', 'status');
+    const link = document.createElement('a');
+    link.className = 'fact-link';
+    link.href = `${import.meta.env.BASE_URL}bronnen.html#${FACT_KIND.get(item.img)}`;
+    link.append(facts[next], Object.assign(document.createElement('span'), { className: 'fact-more', textContent: 'Bronnen >' }));
+    el.append(link);
+    document.body.appendChild(el);
+    fact = { el, bird, timer: window.setTimeout(hideFact, FACT_SECONDS * 1000) };
+    placeFact();
+  }
+
+  function hideFact() {
+    if (!fact) return;
+    const { el } = fact;
+    clearTimeout(fact.timer);
+    fact = null;
+    el.classList.add('fact-out');
+    window.setTimeout(() => el.remove(), 300);
+  }
+
+  function placeFact() {
+    if (!fact) return;
+    const { el, bird } = fact;
+    const w = el.offsetWidth;
+    const tail = clamp(bird.x * scale, 16, window.innerWidth - 16);
+    const left = clamp(bird.x * scale - w / 2, 8, Math.max(8, window.innerWidth - w - 8));
+    el.style.left = `${left}px`;
+    el.style.top = `${Math.max(8, (bird.y - bird.img.height / 2) * scale - el.offsetHeight - 26)}px`;
+    el.style.setProperty('--tail', `${clamp(tail - left, 12, Math.max(12, w - 12))}px`);
   }
 
   const toPond = (e: PointerEvent) => ({ x: e.clientX / scale, y: e.clientY / scale });
@@ -435,13 +571,13 @@ async function start(canvas: HTMLCanvasElement) {
   }
 
   function overInteractive(e: PointerEvent) {
-    return e.target instanceof Element && e.target.closest('a, button, input') !== null;
+    return e.target instanceof Element && e.target.closest('a, button, input, .toast') !== null;
   }
 
   window.addEventListener('pointermove', (e) => {
     const p = toPond(e);
     trail(p);
-    canvas.style.cursor = !inBlocked(p.x, p.y, 0) && (duckAt(p.x, p.y) || litterAt(p.x, p.y) >= 0) ? 'pointer' : '';
+    canvas.style.cursor = !inBlocked(p.x, p.y, 0) && (duckAt(p.x, p.y) || litterAt(p.x, p.y) >= 0 || padAt(p.x, p.y)) ? 'pointer' : '';
   });
   window.addEventListener('pointerdown', (e) => {
     if (overInteractive(e)) return;
@@ -455,14 +591,21 @@ async function start(canvas: HTMLCanvasElement) {
       return;
     }
     const i = litterAt(p.x, p.y);
-    if (i < 0) return;
+    if (i < 0) {
+      const pad = padAt(p.x, p.y);
+      if (pad && pad.bloom === undefined) {
+        pad.bloom = 0;
+        }
+      return;
+    }
     const [gone] = litter.splice(i, 1);
+    tellFact(gone);
     sparkles.push({ x: gone.x, y: gone.y, age: 0 });
     respawn.push(rand(2, 4));
     collected++;
     if (counter) counter.textContent = String(collected);
     sessionStorage.setItem('litter-collected', String(collected));
-    if (isMilestone(collected)) showToast(MILESTONE_TEXT);
+    if (isMilestone(collected)) showToast(collected);
     window.dispatchEvent(new CustomEvent('litter-cleared', { detail: { x: e.clientX, y: e.clientY, count: collected } }));
   });
   document.documentElement.addEventListener('pointerleave', () => (last = null));
@@ -546,12 +689,16 @@ async function start(canvas: HTMLCanvasElement) {
 
     for (let i = 0; i < cover.length; i++) if (cover[i] < 1) cover[i] = Math.min(1, cover[i] + ALGAE_REGROW * dt);
     ducks.forEach((d) => updateDuck(d, dt));
-    pads.forEach((p) => updateLitter(p, dt));
+    placeFact();
+    pads.forEach((p) => {
+      updateLitter(p, dt);
+      if (p.bloom !== undefined && (p.bloom += dt) > BLOOM_SECONDS) p.bloom = undefined; // bloem verdwijnt weer
+    });
     litter.forEach((l) => updateLitter(l, dt));
     respawn = respawn.map((t) => t - dt);
     while (respawn.some((t) => t <= 0)) {
       respawn.splice(respawn.findIndex((t) => t <= 0), 1);
-      litter.push(newLitter());
+      litter.push(newLitter(true));
     }
 
     // Het algenveld blijft op zijn plek en verkleurt alleen heel traag.
@@ -573,7 +720,14 @@ async function start(canvas: HTMLCanvasElement) {
     const bob = (phase: number, amp: number) => (reduceMotion ? 0 : Math.round(Math.sin(time * 1.6 + phase) * amp));
     for (const p of pads) {
       const b = bitmapsOf(p.img).normal;
-      blit(b, Math.round(p.x - b.w / 2), Math.round(p.y - b.h / 2) + bob(p.phase, 1));
+      const px0 = Math.round(p.x - b.w / 2);
+      const py0 = Math.round(p.y - b.h / 2) + bob(p.phase, 1);
+      blit(b, px0, py0);
+      if (p.bloom !== undefined) {
+        // knop -> bloem -> weer knop, daarna weg
+        const stage = p.bloom < 0.4 || p.bloom > BLOOM_SECONDS - 0.8 ? budImg : bloomImg;
+        blit(bitmapsOf(stage).normal, px0, py0);
+      }
     }
     for (const l of litter) {
       const b = bitmapsOf(l.img).normal;
