@@ -107,6 +107,17 @@ main a { pointer-events: auto; }
   mask: var(--knockout) center / 100% 100% no-repeat;
 }
 
+/* Telefoon: smallere, compactere kaart met meer water opzij, en onderaan een bijna volledig scherm
+   water om in te spelen (de vijver staat vast, de kaart scrolt eroverheen). */
+@media (max-width: 699px) {
+  main {
+    width: calc(100% - 96px);
+    margin: 24px auto 85vh;
+    padding: 16px 14px 4px;
+  }
+  .lead { font-size: 1rem; }
+}
+
 /* Vanaf tabletbreedte staat het menu als kolom links; de tekstkaart schuift ernaast. */
 @media (min-width: 700px) {
   .pond-menu {

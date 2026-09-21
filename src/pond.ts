@@ -356,11 +356,14 @@ async function start(canvas: HTMLCanvasElement) {
     }
   }
 
+  // Op de telefoon is de kaart smal en zweven de dieren vrij eronderdoor (anders zitten ze in twee smalle kanalen).
+  const phone = window.matchMedia('(max-width: 699px)');
+
   function updateDuck(d: Duck, dt: number) {
     d.turn = clamp(d.turn + rand(-1.5, 1.5) * dt * 2, -0.8, 0.8);
     d.angle += d.turn * dt;
     // Zit het dier onder de tekstkaart, zwem dan naar de dichtstbijzijnde kant eruit.
-    const under = blocked.find((r) => d.x > r.x0 && d.x < r.x1 && d.y > r.y0 && d.y < r.y1);
+    const under = phone.matches ? undefined : blocked.find((r) => d.x > r.x0 && d.x < r.x1 && d.y > r.y0 && d.y < r.y1);
     if (under) {
       const exits = [
         { x: under.x0 - 10, y: d.y }, { x: under.x1 + 10, y: d.y },
@@ -374,7 +377,7 @@ async function start(canvas: HTMLCanvasElement) {
     const margin = 28;
     const edge = Math.max(margin - d.x, d.x - (W - margin), margin - d.y, d.y - (H - margin), 0) / margin;
     if (edge > 0) {
-      const cx = inBlocked(W / 2, H / 2, 0) ? (d.x < W / 2 ? W * 0.1 : W * 0.9) : W / 2;
+      const cx = !phone.matches && inBlocked(W / 2, H / 2, 0) ? (d.x < W / 2 ? W * 0.1 : W * 0.9) : W / 2;
       let diff = Math.atan2(H / 2 - d.y, cx - d.x) - d.angle;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       d.angle += clamp(diff, -1, 1) * dt * 4 * Math.min(edge, 1);
@@ -382,7 +385,7 @@ async function start(canvas: HTMLCanvasElement) {
     // Blijf zichtbaar: draai weg van de tekstkaart en de kop.
     const ax = d.x + Math.cos(d.angle) * 14;
     const ay = d.y + Math.sin(d.angle) * 14;
-    if (!inBlocked(d.x, d.y, 6) && inBlocked(ax, ay, 6)) d.angle += (d.turn >= 0 ? 1 : -1) * dt * 6;
+    if (!phone.matches && !inBlocked(d.x, d.y, 6) && inBlocked(ax, ay, 6)) d.angle += (d.turn >= 0 ? 1 : -1) * dt * 6;
     d.x += Math.cos(d.angle) * d.speed * dt;
     d.y += Math.sin(d.angle) * d.speed * dt;
     // Het spoor ontstaat achter de eend, niet ervoor.
