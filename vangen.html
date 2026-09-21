@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Vang het afval – Afval &amp; Café</title>
+</head>
+<body>
+  <main>
+  <canvas id="spel" aria-label="Speelveld: sleep de vuilniszak om afval te vangen"></canvas>
+  <div id="score" aria-live="off">0</div>
+  <div id="kaart">
+    <h1 id="titel">Vang het afval</h1>
+    <p id="uitleg">Sleep de zak en vang al het afval. Laat blaadjes, takken en dennenappels vallen. Mis je afval of vang je natuur, dan ben je af!</p>
+    <p id="beste"></p>
+    <p class="tik">Tik om te starten</p>
+  </div>
+  </main>
+  <script type="module" src="/src/vangen.ts"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #3b8bb0;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: block;
+  image-rendering: pixelated;
+  touch-action: none;
+}
+
+#score,
+#kaart {
+  font-family: "Press Start 2P", monospace;
+  color: #fff;
+  text-shadow: 2px 2px 0 #16301a, -2px 2px 0 #16301a, 2px -2px 0 #16301a, -2px -2px 0 #16301a;
+  pointer-events: none;
+}
+
+#score {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 28px;
+}
+
+#kaart {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px;
+  box-sizing: border-box;
+  text-align: center;
+  background: rgba(22, 48, 26, 0.6);
+}
+
+#kaart[hidden] {
+  display: none;
+}
+
+#kaart h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.4;
+}
+
+#kaart p {
+  margin: 0;
+  max-width: 24em;
+  font-size: 11px;
+  line-height: 1.9;
+}
+
+#kaart .tik {
+  animation: knipper 1.2s steps(2, jump-none) infinite;
+}
+
+@keyframes knipper {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #kaart .tik {
+    animation: none;
+  }
+}
