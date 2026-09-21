@@ -6,7 +6,17 @@
   <meta name="robots" content="noindex">
   <title>Afvalpaspoort – Afval &amp; Café</title>
 </head>
-<body>
+<body class="sub paspoort" data-vijver="rustig">
+  <canvas id="pond" aria-hidden="true"></canvas>
+
+  <nav class="pond-menu" aria-label="Menu">
+    <a href="index.html">Home</a>
+    <a href="over-ons.html">Over ons</a>
+    <a href="galerij.html">Galerij</a>
+    <a href="doe-mee.html">Doe mee</a>
+    <a href="bingo.html" aria-current="page">Paspoort</a>
+  </nav>
+
   <main>
     <h1>Afvalpaspoort</h1>
     <p class="uitleg">Vind je iets uit het paspoort tijdens het prikken? Tik het vakje aan om het door te strepen. Een hele rij, kolom of diagonaal is bingo!</p>
@@ -14,6 +24,7 @@
     <p id="melding" role="status"></p>
     <button type="button" id="reset">Opnieuw beginnen</button>
   </main>
+  <script type="module" src="/src/pond.ts"></script>
   <script type="module" src="/src/bingo.ts"></script>
 </body>
 </html>

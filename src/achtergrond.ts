@@ -67,10 +67,11 @@ function willekeurig(zaad: number) {
   };
 }
 
-export function bouwAchtergrond(W: number, H: number) {
+// kerkX: waar de Nieuwe Kerk (en de skyline) staat, in pixels; standaard in het midden.
+export function bouwAchtergrond(W: number, H: number, kerkX = Math.round(W / 2)) {
   const parkHoogte = Math.min(130, Math.max(64, Math.round(H * 0.36)));
   const grond = H - parkHoogte;
-  const midden = Math.round(W / 2);
+  const midden = kerkX;
   const rand = willekeurig(W * 7919 + H);
   const s = sprites;
   indeling.grond = grond;

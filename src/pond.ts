@@ -192,7 +192,9 @@ async function start(canvas: HTMLCanvasElement) {
   const water = WATER.map(abgr);
   const algae = ALGAE.map(abgr);
   const counter = document.getElementById('litter-count');
-  const solid = ['main', '.pond-menu'].map((q) => document.querySelector(q)).filter(
+  // Rustige vijver (afvalpaspoort): geen afval om aan te klikken, en de vogels zwemmen ook onder de pagina door.
+  const rustigeVijver = document.body.dataset.vijver === 'rustig';
+  const solid = (rustigeVijver ? ['.pond-menu'] : ['main', '.pond-menu']).map((q) => document.querySelector(q)).filter(
     (el): el is Element => el !== null,
   );
 
@@ -345,7 +347,7 @@ async function start(canvas: HTMLCanvasElement) {
     }
     const screens = Math.max(1, Math.round(WH / H));
     if (pads.length === 0) for (let k = 0; k < screens; k++) for (const name of PAD_SPRITES) pads.push(newPad(padByName.get(name)!));
-    if (litter.length === 0) for (let i = 0; i < LITTER_COUNT * screens; i++) litter.push(newLitter());
+    if (litter.length === 0 && !rustigeVijver) for (let i = 0; i < LITTER_COUNT * screens; i++) litter.push(newLitter());
   }
 
   function updateBlocked() {

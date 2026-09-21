@@ -49,6 +49,8 @@ main {
   box-shadow: 0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink);
   pointer-events: none; /* afval en vogels eronder blijven klikbaar */
 }
+/* Doe mee: geen speelwater onder de tekst nodig, het spel staat op de achtergrond */
+.doe-mee main { margin-bottom: 24px; }
 main h1 { margin: 8px 0; font-family: "EB Garamond", Georgia, serif; font-weight: 500; font-size: 2.6rem; letter-spacing: 0.01em; line-height: 1.15; color: #22502b; } /* lettertype lijkt op dat van het logo */
 .brand { display: block; margin: 0 0 20px; }
 main h1.brand { margin: 0 0 20px; }

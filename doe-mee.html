@@ -5,15 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Doe mee – Afval &amp; Café</title>
 </head>
-<body class="sub">
-  <canvas id="pond" aria-hidden="true"></canvas>
+<body class="sub doe-mee">
+  <canvas id="spel" aria-hidden="true"></canvas>
 
   <nav class="pond-menu" aria-label="Menu">
     <a href="index.html">Home</a>
     <a href="over-ons.html">Over ons</a>
     <a href="galerij.html">Galerij</a>
     <a href="doe-mee.html" aria-current="page">Doe mee</a>
-    <a href="vangen.html">Spel</a>
     <a href="bingo.html">Paspoort</a>
   </nav>
 
@@ -24,7 +23,7 @@
     <p><em>Stuur een mailtje naar afvalcafe@pm.me, dan nemen wij zsm contact met je op om kennis te maken!</em></p>
   </main>
 
-  <div class="counter" aria-live="polite">Opgeruimd: <span id="litter-count">0</span></div>
-  <script type="module" src="/src/pond.ts"></script>
+  <div class="counter">Jij: <span id="score-jij">0</span><br>Anderen: <span id="score-anderen">0</span></div>
+  <script type="module" src="/src/doemee.ts"></script>
 </body>
 </html>
