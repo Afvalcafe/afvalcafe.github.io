@@ -197,13 +197,6 @@ main a { pointer-events: auto; }
   .toast { animation: none; }
 }
 
-.confetti {
-  position: fixed;
-  top: 0;
-  z-index: 9;
-  pointer-events: none;
-}
-
 /* ---------- Weetje van een vogel ---------- */
 .fact {
   position: fixed;

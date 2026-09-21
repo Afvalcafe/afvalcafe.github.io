@@ -10,7 +10,8 @@ for (const file of pages.filter((f) => f !== 'galerij.html' && f !== 'vangen.htm
     await expect(page).toHaveScreenshot(`${file.replace('.html', '')}.png`, {
       fullPage: true,
       // De vijver is willekeurig en bewegend; alleen de pagina eromheen vergelijken.
-      mask: [page.locator('#pond')],
+      // De bingofoto's schaalt WebKit niet elke keer pixel-voor-pixel gelijk; het raster en de labels blijven wel vergeleken.
+      mask: [page.locator('#pond'), page.locator('.vakje img')],
     });
   });
 }

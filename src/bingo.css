@@ -1,0 +1,120 @@
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #3b8bb0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+main {
+  box-sizing: border-box;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 12px max(24px, env(safe-area-inset-bottom));
+  font-family: "Press Start 2P", monospace;
+  color: #fff;
+  text-align: center;
+}
+
+h1 {
+  margin: 8px 0 16px;
+  font-size: clamp(18px, 6vw, 28px);
+  font-weight: normal;
+  text-shadow: 2px 2px 0 #16301a;
+}
+
+.uitleg {
+  margin: 0 auto 20px;
+  max-width: 560px;
+  font-size: 10px;
+  line-height: 1.8;
+  text-shadow: 1px 1px 0 #16301a;
+}
+
+#kaart {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 4px;
+  background: #16301a;
+  border: 3px solid #16301a;
+}
+
+.vakje {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  color: #16301a;
+  background: #fff;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.vakje img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: cover;
+  transition: opacity 0.15s;
+}
+
+.vakje span {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.9em;
+  padding: 2px;
+  font-size: clamp(5px, 1.6vw, 9px);
+  line-height: 1.4;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+/* doorgestreept: foto vervaagt en er komt een pixel-art kruis overheen */
+.vakje[aria-pressed='true'] img {
+  opacity: 0.35;
+}
+
+.vakje[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* pixel-art kruis (public/bingo/kruis.png) in Flexoki rood (#AF3029) met Flexoki-zwarte rand */
+  background: url('/bingo/kruis.png') center 30% / auto 60% no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.vakje:focus-visible {
+  outline: 3px solid #f5b800;
+  outline-offset: -3px;
+}
+
+#melding {
+  min-height: 1.5em;
+  margin: 16px 0 8px;
+  font-size: 14px;
+  text-shadow: 2px 2px 0 #16301a;
+}
+
+#reset {
+  padding: 12px 16px;
+  font: 10px "Press Start 2P", monospace;
+  color: #16301a;
+  background: #fff;
+  border: 3px solid #16301a;
+  box-shadow: 0 4px 0 #16301a;
+  cursor: pointer;
+}
+
+#reset:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #16301a;
+}

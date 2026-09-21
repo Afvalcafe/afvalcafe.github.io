@@ -2,6 +2,7 @@ import '@fontsource/press-start-2p';
 import './vangen.css';
 import { pondScale } from './pixel';
 import { bouwAchtergrond, laadAchtergrond, tekenAchtergrond } from './achtergrond';
+import { laadVogel, plaatsVogel, tekenVogel, updateVogel } from './vogel';
 
 const AFVAL = ['batterij', 'schoen', 'fles', 'beker', 'chips', 'sigaret'];
 const NATUUR = ['blad', 'blad2', 'tak', 'dennenappel'];
@@ -69,6 +70,7 @@ function resize() {
   ctx.imageSmoothingEnabled = false;
   bag.y = H - zak.height - RAND;
   bouwAchtergrond(W, H);
+  plaatsVogel(W, H);
   bag.doel = Math.min(Math.max(bag.doel, 0), W - zak.width);
   bag.x = Math.min(bag.x, W - zak.width);
 }
@@ -140,6 +142,7 @@ function afgelopen(reden: string) {
 const zwaai = (v: Voorwerp) => (v.natuur && !rustig ? Math.sin(tijd * 3 + v.fase) * ZWAAI : 0);
 
 function update(dt: number) {
+  updateVogel(dt, rustig);
   if (toets) bag.doel = Math.min(Math.max(bag.doel + toets * BAG_SNELHEID * dt, 0), W - zak.width);
   const stap = BAG_SNELHEID * dt;
   bag.x += Math.min(stap, Math.max(-stap, bag.doel - bag.x));
@@ -174,7 +177,9 @@ function update(dt: number) {
 }
 
 function teken() {
-  tekenAchtergrond(ctx, W, H, performance.now() / 1000, rustig);
+  const nu = performance.now() / 1000;
+  tekenAchtergrond(ctx, W, nu, rustig);
+  tekenVogel(ctx, nu);
   for (const v of voorwerpen) ctx.drawImage(v.img, Math.round(v.x + zwaai(v)), Math.round(v.y));
   ctx.drawImage(zak, Math.round(bag.x), bag.y + (bag.stoot > 0 ? 1 : 0));
 }
@@ -191,6 +196,7 @@ function lus(nu: number) {
 async function init() {
   [zak, afval, natuur] = await Promise.all([laad('vuilniszak'), Promise.all(AFVAL.map(laad)), Promise.all(NATUUR.map(laad))]);
   await laadAchtergrond(laad);
+  laadVogel(await laad('vogel'));
   resize();
   addEventListener('resize', resize);
   bag.x = bag.doel = (W - zak.width) / 2;
