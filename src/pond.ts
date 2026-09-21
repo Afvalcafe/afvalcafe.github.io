@@ -5,6 +5,8 @@ import '@fontsource/press-start-2p';
 import '@fontsource/eb-garamond/500.css';
 import './pond.css';
 import './menu';
+import { pondScale } from './pixel';
+import { createRafts } from './rafts';
 
 const DUCK_COUNT = 4;
 const COOT_COUNT = 4;
@@ -192,13 +194,14 @@ const BUBBLE_SECONDS = 1.4;
 
 async function start(canvas: HTMLCanvasElement) {
   const ctx = canvas.getContext('2d', { willReadFrequently: false })!;
-  const [duckImg, cootImg, swanImg, sparkleImg, bloomImg, budImg, ...loaded] = await Promise.all([
+  const [duckImg, cootImg, swanImg, sparkleImg, bloomImg, budImg, logImg, ...loaded] = await Promise.all([
     loadSprite('eend'),
     loadSprite('meerkoet'),
     loadSprite('zwaan'),
     loadSprite('sparkles'),
     loadSprite('bloem'),
     loadSprite('knop'),
+    loadSprite('boomstam'),
     ...LITTER_SPRITES.map(loadSprite),
     ...[...new Set(PAD_SPRITES)].map(loadSprite),
   ]);
@@ -215,7 +218,8 @@ async function start(canvas: HTMLCanvasElement) {
 
   let scale = 4;
   let W = 0;
-  let H = 0;
+  let H = 0; // hoogte van het scherm in pond-pixels
+  let WH = 0; // hoogte van de vijver: op de galerij hoger dan het scherm, de pagina scrolt er dan doorheen
   // Textuurruimte (TW x TH) is tegelbaar en schuift langzaam onder het scherm door.
   let TW = 0;
   let TH = 0;
@@ -237,6 +241,10 @@ async function start(canvas: HTMLCanvasElement) {
   let collected = Number(sessionStorage.getItem('litter-collected')) || 0;
   if (counter) counter.textContent = String(collected);
   let blocked: Rect[] = [];
+  const raftSim = createRafts(); // galerij: foto's op boomstammen; op andere pagina's zijn er geen
+  let raftRects: Rect[] = []; // bewegende, vaste voorwerpen: vogels en afval kunnen er niet doorheen
+  // Bovenkant van het scherm in de vijver, in hele pond-pixels; alleen op de galerij scrolt de vijver mee.
+  const camera = () => (raftSim.has ? clamp(Math.round(window.scrollY / scale), 0, Math.max(0, WH - H)) : 0);
 
   // Zachte, tegelbare ruis: willekeurige waarden op een grof raster, bilineair geïnterpoleerd.
   // `cell` moet TW en TH delen.
@@ -283,11 +291,11 @@ async function start(canvas: HTMLCanvasElement) {
     if (key === sized) return; // bv. alleen de adresbalk die beweegt: niets herbouwen
     sized = key;
 
-    // Elke pond-pixel is een geheel aantal schermpixels breed, anders schuiven randen en flikkeren sprites.
-    const deviceScale = clamp(Math.round(Math.max(2, cssW / 360) * dpr), Math.round(2 * dpr), Math.round(6 * dpr));
-    scale = deviceScale / dpr; // CSS-pixels per pond-pixel
+    const { deviceScale, scale: cssScale } = pondScale(cssW, dpr);
+    scale = cssScale; // CSS-pixels per pond-pixel
     W = Math.ceil(cssW / scale);
     H = Math.ceil(cssH / scale);
+    WH = H;
     canvas!.width = W;
     canvas!.height = H;
     canvas!.style.width = `${(W * deviceScale) / dpr}px`;
@@ -295,9 +303,16 @@ async function start(canvas: HTMLCanvasElement) {
     ctx.imageSmoothingEnabled = false;
 
     updateBlocked(); // vóór het plaatsen van eenden en afval
+    if (raftSim.has) {
+      const nav = document.querySelector('.pond-menu')?.getBoundingClientRect();
+      const off = window.scrollY / scale;
+      WH = raftSim.layout(W, H, nav ? { x0: nav.left / scale, y0: nav.top / scale + off, x1: nav.right / scale, y1: nav.bottom / scale + off } : null, phone.matches);
+      document.body.style.minHeight = `${WH * scale}px`; // de pagina is zo hoog als de vijver
+    }
+    raftRects = raftSim.rects();
     TW = Math.ceil(W / 48) * 48;
     TH = Math.ceil(H / 48) * 48;
-    const n = W * H;
+    const n = W * WH;
     const tn = TW * TH;
     cover = new Float32Array(n).fill(1);
     thr = new Float32Array(tn).map(Math.random);
@@ -325,20 +340,21 @@ async function start(canvas: HTMLCanvasElement) {
 
     for (const d of ducks) {
       d.x = clamp(d.x, 8, W - 8);
-      d.y = clamp(d.y, 8, H - 8);
+      d.y = clamp(d.y, 8, WH - 8);
     }
     if (ducks.length === 0) {
+      const screens = Math.max(1, Math.round(WH / H)); // op de hoge galerij evenredig meer vogels en afval
       const kinds = [
-        ...Array.from({ length: DUCK_COUNT }, () => ({ img: duckImg, words: DUCK_WORDS })),
-        ...Array.from({ length: COOT_COUNT }, () => ({ img: cootImg, words: COOT_WORDS })),
-        ...Array.from({ length: SWAN_COUNT }, () => ({ img: swanImg, words: SWAN_WORDS })),
+        ...Array.from({ length: DUCK_COUNT * screens }, () => ({ img: duckImg, words: DUCK_WORDS })),
+        ...Array.from({ length: COOT_COUNT * screens }, () => ({ img: cootImg, words: COOT_WORDS })),
+        ...Array.from({ length: SWAN_COUNT * screens }, () => ({ img: swanImg, words: SWAN_WORDS })),
       ];
       ducks = kinds.map((kind) => {
         let x = 0;
         let y = 0;
         for (let tries = 0; tries < 40; tries++) {
           x = rand(30, W - 30);
-          y = rand(30, H - 30);
+          y = rand(30, WH - 30);
           if (!inBlocked(x, y, 10)) break;
         }
         return {
@@ -347,26 +363,29 @@ async function start(canvas: HTMLCanvasElement) {
         };
       });
     }
-    if (pads.length === 0) for (const name of PAD_SPRITES) pads.push(newPad(padByName.get(name)!));
-    if (litter.length === 0) for (let i = 0; i < LITTER_COUNT; i++) litter.push(newLitter());
+    const screens = Math.max(1, Math.round(WH / H));
+    if (pads.length === 0) for (let k = 0; k < screens; k++) for (const name of PAD_SPRITES) pads.push(newPad(padByName.get(name)!));
+    if (litter.length === 0) for (let i = 0; i < LITTER_COUNT * screens; i++) litter.push(newLitter());
   }
 
   function updateBlocked() {
+    const off = raftSim.has ? window.scrollY / scale : 0; // paginacoördinaten: menu en tekst scrollen mee
     blocked = solid.map((el) => {
       const r = el.getBoundingClientRect();
-      return { x0: r.left / scale, y0: r.top / scale, x1: r.right / scale, y1: r.bottom / scale };
+      return { x0: r.left / scale, y0: r.top / scale + off, x1: r.right / scale, y1: r.bottom / scale + off };
     });
   }
 
-  const inBlocked = (x: number, y: number, pad: number) =>
-    blocked.some((r) => x > r.x0 - pad && x < r.x1 + pad && y > r.y0 - pad && y < r.y1 + pad);
+  const inRect = (r: Rect, x: number, y: number, pad: number) => x > r.x0 - pad && x < r.x1 + pad && y > r.y0 - pad && y < r.y1 + pad;
+  const inBlocked = (x: number, y: number, pad: number) => blocked.some((r) => inRect(r, x, y, pad));
+  const inRaft = (x: number, y: number, pad: number) => raftRects.some((r) => inRect(r, x, y, pad));
 
   function newPad(img: HTMLImageElement): Litter {
     let x = 0;
     let y = 0;
     for (let tries = 0; tries < 40; tries++) {
       x = rand(20, W - 20);
-      y = rand(20, H - 20);
+      y = rand(20, WH - 20);
       if (!inBlocked(x, y, img.width / 2)) break;
     }
     const a = rand(0, Math.PI * 2);
@@ -388,17 +407,17 @@ async function start(canvas: HTMLCanvasElement) {
       for (let tries = 0; tries < 40; tries++) {
         const side = Math.floor(Math.random() * 4);
         const s = rand(3, 5);
-        if (side === 0) { x = -half - 1; y = rand(20, H - 20); vx = s; vy = rand(-1, 1); }
-        else if (side === 1) { x = W + half + 1; y = rand(20, H - 20); vx = -s; vy = rand(-1, 1); }
+        if (side === 0) { x = -half - 1; y = rand(20, WH - 20); vx = s; vy = rand(-1, 1); }
+        else if (side === 1) { x = W + half + 1; y = rand(20, WH - 20); vx = -s; vy = rand(-1, 1); }
         else if (side === 2) { x = rand(20, W - 20); y = -half - 1; vy = s; vx = rand(-1, 1); }
-        else { x = rand(20, W - 20); y = H + half + 1; vy = -s; vx = rand(-1, 1); }
-        if (!inBlocked(clamp(x, 25, W - 25), clamp(y, 25, H - 25), half)) break;
+        else { x = rand(20, W - 20); y = WH + half + 1; vy = -s; vx = rand(-1, 1); }
+        if (!inBlocked(clamp(x, 25, W - 25), clamp(y, 25, WH - 25), half)) break;
       }
       return { img, x, y, vx, vy, phase: rand(0, 6) };
     }
     for (let tries = 0; tries < 40; tries++) {
       x = rand(20, W - 20);
-      y = rand(20, H - 20);
+      y = rand(20, WH - 20);
       if (!inBlocked(x, y, img.width / 2)) break;
     }
     const a = rand(0, Math.PI * 2);
@@ -411,7 +430,7 @@ async function start(canvas: HTMLCanvasElement) {
     const x0 = Math.max(0, Math.floor(cx - r));
     const x1 = Math.min(W - 1, Math.ceil(cx + r));
     const y0 = Math.max(0, Math.floor(cy - r));
-    const y1 = Math.min(H - 1, Math.ceil(cy + r));
+    const y1 = Math.min(WH - 1, Math.ceil(cy + r));
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
         const d = Math.hypot(x - cx, y - cy) / r;
@@ -435,29 +454,30 @@ async function start(canvas: HTMLCanvasElement) {
     d.turn = clamp(d.turn + rand(-1.5, 1.5) * dt * 2, -0.8, 0.8);
     d.angle += d.turn * dt;
     // Zit het dier onder de tekstkaart, zwem dan naar de dichtstbijzijnde kant eruit.
-    const under = phone.matches ? undefined : blocked.find((r) => d.x > r.x0 && d.x < r.x1 && d.y > r.y0 && d.y < r.y1);
+    const under = (phone.matches ? undefined : blocked.find((r) => inRect(r, d.x, d.y, 0))) ?? raftRects.find((r) => inRect(r, d.x, d.y, 0));
     if (under) {
       const exits = [
         { x: under.x0 - 10, y: d.y }, { x: under.x1 + 10, y: d.y },
         { x: d.x, y: under.y0 - 10 }, { x: d.x, y: under.y1 + 10 },
-      ].map((o) => ({ x: clamp(o.x, 8, W - 8), y: clamp(o.y, 8, H - 8) }));
+      ].map((o) => ({ x: clamp(o.x, 8, W - 8), y: clamp(o.y, 8, WH - 8) }));
       const to = exits.reduce((a, b) => (Math.hypot(a.x - d.x, a.y - d.y) <= Math.hypot(b.x - d.x, b.y - d.y) ? a : b));
       let diff = Math.atan2(to.y - d.y, to.x - d.x) - d.angle;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       d.angle += clamp(diff, -1, 1) * dt * 4;
     }
     const margin = 28;
-    const edge = Math.max(margin - d.x, d.x - (W - margin), margin - d.y, d.y - (H - margin), 0) / margin;
+    const edge = Math.max(margin - d.x, d.x - (W - margin), margin - d.y, d.y - (WH - margin), 0) / margin;
     if (edge > 0) {
-      const cx = !phone.matches && inBlocked(W / 2, H / 2, 0) ? (d.x < W / 2 ? W * 0.1 : W * 0.9) : W / 2;
-      let diff = Math.atan2(H / 2 - d.y, cx - d.x) - d.angle;
+      const cx = !phone.matches && inBlocked(W / 2, WH / 2, 0) ? (d.x < W / 2 ? W * 0.1 : W * 0.9) : W / 2;
+      let diff = Math.atan2(WH / 2 - d.y, cx - d.x) - d.angle;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       d.angle += clamp(diff, -1, 1) * dt * 4 * Math.min(edge, 1);
     }
-    // Blijf zichtbaar: draai weg van de tekstkaart en de kop.
+    // Blijf zichtbaar: draai weg van de tekstkaart, de kop en de vlotten.
     const ax = d.x + Math.cos(d.angle) * 14;
     const ay = d.y + Math.sin(d.angle) * 14;
-    if (!phone.matches && !inBlocked(d.x, d.y, 6) && inBlocked(ax, ay, 6)) d.angle += (d.turn >= 0 ? 1 : -1) * dt * 6;
+    const wall = (x: number, y: number) => (!phone.matches && inBlocked(x, y, 6)) || inRaft(x, y, 6);
+    if (!wall(d.x, d.y) && wall(ax, ay)) d.angle += (d.turn >= 0 ? 1 : -1) * dt * 6;
     // Ga andere dieren voor de neus uit de weg: draai weg van wie vlak voor je zwemt.
     for (const o of ducks) {
       if (o === d) continue;
@@ -507,13 +527,30 @@ async function start(canvas: HTMLCanvasElement) {
         push(ducks[i], ducks[j], bodyW(ducks[i].img) + bodyW(ducks[j].img), bodyH(ducks[i].img) + bodyH(ducks[j].img), 0.5);
       }
     }
-    const binnen = (l: Litter) => l.x > 8 && l.x < W - 8 && l.y > 8 && l.y < H - 8; // afval dat nog binnendrijft laten we met rust
+    // Vlotten zijn vast: vogels en afval die erin terechtkomen worden er zachtjes uitgeduwd.
+    const pushOut = (o: { x: number; y: number }, hw: number, hh: number) => {
+      for (const r of raftRects) {
+        const l = r.x0 - hw;
+        const rr = r.x1 + hw;
+        const t = r.y0 - hh;
+        const b = r.y1 + hh;
+        if (o.x <= l || o.x >= rr || o.y <= t || o.y >= b) continue;
+        const m = Math.min(o.x - l, rr - o.x, o.y - t, b - o.y);
+        if (m === o.x - l) o.x -= m * k;
+        else if (m === rr - o.x) o.x += m * k;
+        else if (m === o.y - t) o.y -= m * k;
+        else o.y += m * k;
+      }
+    };
+    for (const d of ducks) pushOut(d, d.img.width / 2, d.img.height / 2);
+    const binnen = (l: Litter) => l.x > 8 && l.x < W - 8 && l.y > 8 && l.y < WH - 8; // afval dat nog binnendrijft laten we met rust
     for (let i = 0; i < litter.length; i++) {
       if (!binnen(litter[i])) continue;
       for (let j = i + 1; j < litter.length; j++) {
         if (binnen(litter[j])) push(litter[i], litter[j], 14, 14, 0.5);
       }
       for (const d of ducks) push(d, litter[i], bodyW(d.img) + 6, bodyH(d.img) + 6, 0); // alleen het afval schuift
+      pushOut(litter[i], litter[i].img.width / 2, litter[i].img.height / 2);
     }
   }
 
@@ -521,13 +558,14 @@ async function start(canvas: HTMLCanvasElement) {
     const pad = l.img.width / 2;
     const nx = l.x + l.vx * dt;
     const ny = l.y + l.vy * dt;
-    const inside = inBlocked(l.x, l.y, pad);
+    const hit = (x: number, y: number) => inBlocked(x, y, pad) || inRaft(x, y, pad);
+    const inside = hit(l.x, l.y);
     // Alleen terugkaatsen bij de rand als het afval naar buiten drijft: van buiten naar binnen mag altijd.
     const outX = (nx < pad && l.vx < 0) || (nx > W - pad && l.vx > 0);
-    const outY = (ny < pad && l.vy < 0) || (ny > H - pad && l.vy > 0);
-    if (outX || (!inside && inBlocked(nx, l.y, pad))) l.vx = -l.vx;
+    const outY = (ny < pad && l.vy < 0) || (ny > WH - pad && l.vy > 0);
+    if (outX || (!inside && hit(nx, l.y))) l.vx = -l.vx;
     else l.x = nx;
-    if (outY || (!inside && inBlocked(l.x, ny, pad))) l.vy = -l.vy;
+    if (outY || (!inside && hit(l.x, ny))) l.vy = -l.vy;
     else l.y = ny;
   }
 
@@ -605,11 +643,11 @@ async function start(canvas: HTMLCanvasElement) {
     const tail = clamp(bird.x * scale, 16, window.innerWidth - 16);
     const left = clamp(bird.x * scale - w / 2, 8, Math.max(8, window.innerWidth - w - 8));
     el.style.left = `${left}px`;
-    el.style.top = `${Math.max(8, (bird.y - bird.img.height / 2) * scale - el.offsetHeight - 26)}px`;
+    el.style.top = `${Math.max(8, (bird.y - camera() - bird.img.height / 2) * scale - el.offsetHeight - 26)}px`;
     el.style.setProperty('--tail', `${clamp(tail - left, 12, Math.max(12, w - 12))}px`);
   }
 
-  const toPond = (e: PointerEvent) => ({ x: e.clientX / scale, y: e.clientY / scale });
+  const toPond = (e: PointerEvent) => ({ x: e.clientX / scale, y: e.clientY / scale + camera() });
   let last: { x: number; y: number } | null = null;
 
   function trail(p: { x: number; y: number }) {
@@ -622,7 +660,7 @@ async function start(canvas: HTMLCanvasElement) {
   }
 
   function overInteractive(e: PointerEvent) {
-    return e.target instanceof Element && e.target.closest('a, button, input, .toast') !== null;
+    return e.target instanceof Element && e.target.closest('a, button, input, .toast, .lightbox') !== null;
   }
 
   window.addEventListener('pointermove', (e) => {
@@ -664,9 +702,10 @@ async function start(canvas: HTMLCanvasElement) {
 
   resize();
 
+  let viewTop = 0; // bovenkant van het scherm in de vijver (zie camera); tekenen gebeurt in vijvercoördinaten
   function blit(bmp: Bitmap, x0: number, y0: number, alpha = 1) {
     for (let y = 0; y < bmp.h; y++) {
-      const dy = y0 + y;
+      const dy = y0 + y - viewTop;
       if (dy < 0 || dy >= H) continue;
       for (let x = 0; x < bmp.w; x++) {
         const dx = x0 + x;
@@ -706,7 +745,7 @@ async function start(canvas: HTMLCanvasElement) {
     const h = 9;
     const cx = Math.round(d.x);
     const bx = clamp(cx - Math.floor(w / 2), 3, W - w - 3);
-    const by = Math.max(3, Math.round(d.y) - 12 - h);
+    const by = Math.max(3, Math.round(d.y - viewTop) - 12 - h);
     const px = (x: number, y: number, pw: number, ph: number, color: string) => {
       fillRectPx(x, y, pw, ph, abgr(color));
     };
@@ -737,6 +776,10 @@ async function start(canvas: HTMLCanvasElement) {
     prev = now;
     time += dt;
     updateBlocked();
+    const cam = camera();
+    viewTop = cam;
+    raftSim.update(dt, W, WH, blocked, scale, reduceMotion, cam, H);
+    raftRects = raftSim.rects();
 
     for (let i = 0; i < cover.length; i++) if (cover[i] < 1) cover[i] = Math.min(1, cover[i] + ALGAE_REGROW * dt);
     ducks.forEach((d) => updateDuck(d, dt));
@@ -758,10 +801,11 @@ async function start(canvas: HTMLCanvasElement) {
     for (let k = 0; k < 16; k++) shift[k] = 0.25 * Math.sin(drift * 0.15 + (k * Math.PI) / 8);
     const top = algae.length - 1;
     for (let y = 0; y < H; y++) {
+      const wy = y + cam; // rij in de vijver; de textuur is tegelbaar en herhaalt zich verticaal
       for (let x = 0; x < W; x++) {
         const i = y * W + x;
-        const j = y * TW + x;
-        if (cover[i] * dens[j] > thr[j]) {
+        const j = (wy % TH) * TW + x;
+        if (cover[wy * W + x] * dens[j] > thr[j]) {
           const c = Math.floor((tone[j] + shift[tonePhase[j]]) * algae.length);
           pixels[i] = algae[c < 0 ? 0 : c > top ? top : c];
         } else {
@@ -780,6 +824,12 @@ async function start(canvas: HTMLCanvasElement) {
         const stage = p.bloom < 0.4 || p.bloom > BLOOM_SECONDS - 0.8 ? budImg : bloomImg;
         blit(bitmapsOf(stage).normal, px0, py0);
       }
+    }
+    const logBmp = bitmapsOf(logImg).normal;
+    for (const log of raftSim.logs()) {
+      // de vlotten schuiven door de algen en laten een spoor open water achter
+      for (const cx of [13, 27, 41]) clearDisc(log.x + cx, log.y + 9, 7);
+      blit(logBmp, log.x, log.y);
     }
     for (const l of litter) {
       const b = bitmapsOf(l.img).normal;

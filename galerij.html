@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Galerij – Afval &amp; Café</title>
+</head>
+<body class="sub gallery-page">
+  <canvas id="pond" aria-hidden="true"></canvas>
+
+  <nav class="pond-menu" aria-label="Menu">
+    <a href="index.html">Home</a>
+    <a href="over-ons.html">Over ons</a>
+    <a href="galerij.html" aria-current="page">Galerij</a>
+    <a href="doe-mee.html">Doe mee</a>
+  </nav>
+
+  <!-- De foto's drijven in de vijver; src/rafts.ts verplaatst ze en pond.ts tekent de boomstammen eronder.
+       Elke foto is een knop met het bijschrift in data-caption; gallery.ts maakt er de grote weergave van. -->
+  <div class="gallery" role="main">
+    <h1 class="sr-only">Galerij</h1>
+    <ul>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+      <li class="raft"><button type="button" data-caption="Afval prikken in het Wilhelminapark in Delft"><img src="images/groepsfoto.jpg" alt="Groepsfoto van Afval &amp; Café: lachende vrijwilligers met afvalprikkers en volle vuilniszakken in het park" loading="lazy"></button></li>
+    </ul>
+  </div>
+
+  <div class="counter" aria-live="polite">Opgeruimd: <span id="litter-count">0</span></div>
+  <script type="module" src="/src/pond.ts"></script>
+  <script type="module" src="/src/gallery.ts"></script>
+</body>
+</html>
