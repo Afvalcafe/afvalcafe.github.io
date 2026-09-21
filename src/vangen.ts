@@ -9,7 +9,7 @@ import { bouwAchtergrond, laadAchtergrond, tekenAchtergrond } from './achtergron
 import { laadVogel, plaatsVogel, tekenVogel, updateVogel } from './vogel';
 
 const AFVAL = ['batterij', 'schoen', 'fles', 'beker', 'chips', 'sigaret'];
-const NATUUR = ['blad', 'blad2', 'tak', 'dennenappel'];
+const NATUUR = ['blad', 'blad2'];
 
 const BAG_SNELHEID = 2400; // max. verplaatsing van de zak in pixels per seconde
 const INZAKKEN = 2; // de zak zakt zoveel pixels in de berg waarop hij staat
@@ -24,15 +24,15 @@ const NATUUR_KANS = 0.2;
 const STAPEL_MAX = 0.4; // de berg groeit tot dit deel van het scherm; daarna valt er niets meer
 const TELLER_JIJ = 'litter-collected'; // zelfde teller als in de vijver, zodat hij bewaard blijft tijdens het bladeren
 const TELLER_ANDEREN = 'vangen-anderen';
-const MENS_MAX = 3; // nooit meer dan drie mensen tegelijk; wie er is blijft, en pauzeert bij de koffietafel als er niets te doen is
-const MENS_DREMPEL = [1, 6, 12]; // zoveel liggend afval (zonder opruimer) moet er zijn voor de 1e, 2e en 3e persoon
+const MENS_MAX = 2; // twee mensen, die samen bij de koffietafel zitten tot er genoeg afval ligt
+const OPSTA_DREMPEL = 2; // pas als er meer dan zoveel stuks liggend afval (zonder opruimer) zijn, staan ze op
 const MENS_TEMPO = 14; // pond-pixels per seconde
 const MENS_AFSTAND = 9; // zo ver van het afval blijft iemand staan tijdens het rapen
 const LEVEN_MIN = 8; // natuur vergaat: na zoveel seconden (tussen min en max) vervaagt het en is het weg
 const LEVEN_MAX = 14;
 const VERGA = 1.5; // zo lang duurt het vervagen
 const TAFEL_ZONE = 17; // half zo breed als het gebied rond de koffietafel waar geen afval komt te liggen
-const TAFEL_PLEKKEN = [-19, 19, -31]; // waar mensen staan tijdens de pauze, ten opzichte van het midden van de tafel
+const TAFEL_PLEKKEN = [-14, 14]; // waar de twee mensen staan tijdens de pauze, ten opzichte van het midden van de tafel
 const RAAP_DUUR = 1.9; // seconden per stuk afval
 const ROL = 3; // ligt een voorwerp zoveel pixels hoger dan het buurplekje, dan rolt het die kant op
 
@@ -324,7 +324,7 @@ function update(dt: number) {
   }
   if (vervaagt) herteken();
 
-  beheerMensen(dt);
+  beheerMensen();
   for (const m of mensen) updateMens(m, dt);
 }
 
@@ -348,7 +348,6 @@ const SHIRT = ['#f08a24', '#e6c229', '#3a8ad6', '#c0392b', '#2e8b57', '#8a4fb0']
 const BROEK = ['#2a3a5c', '#3a3a3a', '#5a4630', '#1f4d3a'];
 
 let mensen: Mens[] = [];
-let mensTimer = 0;
 
 const grondY = (x: number) => {
   let h = 0;
@@ -357,24 +356,24 @@ const grondY = (x: number) => {
 };
 const glad = (u: number) => u * u * (3 - 2 * u);
 const mix = (a: number, b: number, u: number) => a + (b - a) * u;
-const vrijAfval = () => gelegen.some((g) => !g.natuur && !g.claim);
+// Pas als er meer dan OPSTA_DREMPEL stuks liggen (zonder opruimer), staan de mensen op.
+const vrijAfval = () => gelegen.filter((g) => !g.natuur && !g.claim).length > OPSTA_DREMPEL;
 
-function nieuweMens(): Mens {
-  const links = Math.random() < 0.5;
-  const x = links ? -8 : W + 8;
+function maakMens(plek: number): Mens {
+  const x = tafel.x + TAFEL_PLEKKEN[plek];
   return {
-    plek: 0,
-    staat: false,
+    plek,
+    staat: true,
     kop: Math.random() * 5,
     x,
     y: grondY(x),
-    dir: links ? 1 : -1,
+    dir: TAFEL_PLEKKEN[plek] < 0 ? 1 : -1,
     stap: 0,
-    toestand: 'loopt',
+    toestand: 'pauze',
     doel: null,
     t: 0,
     zak: 0,
-    tip: { x: 11, y: -2 },
+    tip: { x: 6, y: -12 },
     bek: 0,
     vast: null,
     ic: { x: 0, y: 0 },
@@ -387,15 +386,10 @@ function nieuweMens(): Mens {
   };
 }
 
-// Er komt iemand bij zodra er genoeg liggend afval is zonder opruimer, tot maximaal drie mensen. Ze blijven daarna.
-function beheerMensen(dt: number) {
-  mensTimer -= dt;
-  if (mensTimer > 0 || mensen.length >= MENS_MAX) return;
-  const vrij = gelegen.filter((g) => !g.natuur && !g.claim).length;
-  if (vrij >= MENS_DREMPEL[mensen.length]) {
-    mensen.push(nieuweMens());
-    mensTimer = 4;
-  }
+// De twee mensen zitten al aan de koffietafel zodra de berg voor het eerst bekend is (bouwStapel geeft tafel.x).
+function beheerMensen() {
+  if (mensen.length >= MENS_MAX) return;
+  for (let plek = mensen.length; plek < MENS_MAX; plek++) mensen.push(maakMens(plek));
 }
 
 const midden = (g: Gelegen) => ({ x: g.x + g.img.width / 2, y: H - g.onder - g.img.height / 2 });
@@ -549,16 +543,18 @@ function tekenMens(m: Mens, nu: number) {
   };
   const pauze = m.toestand === 'pauze' && m.staat;
   const lopend = m.toestand !== 'raapt' && !pauze;
-  const zwaai = lopend ? Math.round(Math.sin(m.stap) * 2) : 0;
+  const zwaai = lopend ? Math.round(Math.sin(m.stap) * 1) : 0;
   const tilVoor = lopend && Math.cos(m.stap) > 0 ? 1 : 0;
   const tilAchter = lopend && !tilVoor ? 1 : 0;
 
-  // zak aan de achterhand: wordt voller met elk stuk afval
-  const zh = 6 + Math.min(3, m.zak);
-  r(-10, -11, 6, zh + 1, '#222e26');
-  r(-10, -11, 6, 1, '#5a6f61');
-  r(-9, -10, 1, 2, '#3a4e41');
-  r(-10, -11 + zh, 6, 1, '#141b16');
+  // zak aan de achterhand: wordt voller met elk stuk afval; bij de koffie laten ze hem staan
+  if (!pauze) {
+    const zh = 6 + Math.min(3, m.zak);
+    r(-10, -11, 6, zh + 1, '#222e26');
+    r(-10, -11, 6, 1, '#5a6f61');
+    r(-9, -10, 1, 2, '#3a4e41');
+    r(-10, -11 + zh, 6, 1, '#141b16');
+  }
 
   r(-3 - zwaai, -9, 3, 9 - tilAchter, m.broek);
   r(-3 - zwaai, -2 - tilAchter, 3, 2, '#1f1f1f');

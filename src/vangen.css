@@ -14,8 +14,8 @@ body {
   touch-action: pan-y;
 }
 
-/* De tekst staat in losse pixel-wolkjes in plaats van in een wit vlak: de skyline en het vallende afval blijven zichtbaar.
-   De rand is een 9-delig plaatje (public/sprites/wolkkader.png, 8 pixels per rand) op het pond-raster (--px).
+/* De tekst staat in losse wolkjes in plaats van in een wit vlak: de skyline en het vallende afval blijven zichtbaar.
+   Elk wolkje is een rond wit blobje met een paar bollingen erbovenop, zodat het op een wolk lijkt in plaats van een doos.
    Onder de wolkjes is nog een scherm lucht en park: scroll om het spel goed te zien (marge onderaan uit pond.css). */
 body.doe-mee {
   overflow-x: clip; /* wolkjes die drijven mogen nooit een horizontale scrollbalk geven */
@@ -34,18 +34,32 @@ body.doe-mee main {
 }
 
 body.doe-mee main .wolk {
-  --rand: calc(var(--px, 4px) * 8);
+  --rand: calc(var(--px, 4px) * 6);
+  position: relative;
   box-sizing: border-box;
   max-width: 100%;
-  margin: 0;
-  border: var(--rand) solid transparent;
-  border-image: url('/sprites/wolkkader.png') 8 / var(--rand) / 0 round;
-  image-rendering: pixelated;
-  /* Wit vlak dat onder de rand doorloopt, zodat er geen haarlijntjes tussen rand en binnenkant zitten. */
-  background: linear-gradient(#fff, #fff) no-repeat center / calc(100% - var(--px, 4px) * 6) calc(100% - var(--px, 4px) * 6);
-  background-origin: border-box;
+  margin: calc(var(--px, 4px) * 3) 0 0;
+  padding: var(--rand);
+  border: 0;
+  border-radius: 45% 55% 60% 40% / 60% 65% 35% 40%;
+  background: #fff;
+  box-shadow: 0 calc(var(--px, 4px) * 1.5) 0 rgba(30, 40, 30, 0.12);
   animation: drijf var(--duur, 14s) steps(6, end) var(--start, 0s) infinite alternate;
 }
+/* Twee bolle uitstulpingen bovenaan geven het wolkje zijn pluizige vorm, in plaats van rechte hoeken. */
+body.doe-mee main .wolk::before,
+body.doe-mee main .wolk::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--rand) * -1.4);
+  width: 42%;
+  height: 65%;
+  background: #fff;
+  border-radius: 50%;
+  z-index: -1;
+}
+body.doe-mee main .wolk::before { left: 10%; }
+body.doe-mee main .wolk::after { right: 12%; height: 55%; top: calc(var(--rand) * -1.1); }
 
 body.doe-mee main a.wolk {
   display: block;
