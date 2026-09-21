@@ -1,11 +1,11 @@
-// Confetti uit de lucht, gedeeld door de vijver en de bingo.
+// Confetti falling from the sky, shared by the pond and the bingo card.
 
 import './confetti.css';
 
 const CONFETTI_COLORS = ['#2f9be0', '#f5b800', '#7dc95e', '#e8563f', '#b06ad9', '#ff8fb1'];
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Kleine vlakjes vallen met wat zijwaartse drift en draaiing omlaag.
+// Small rectangles fall down with a bit of sideways drift and rotation.
 export function confetti(count: number) {
   if (reduceMotion) return;
   for (let i = 0; i < count; i++) {

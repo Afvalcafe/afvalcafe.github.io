@@ -6,7 +6,7 @@
   <title>Doe mee – Afval &amp; Café</title>
 </head>
 <body class="sub doe-mee">
-  <canvas id="spel" aria-hidden="true"></canvas>
+  <canvas id="game-canvas" aria-hidden="true"></canvas>
 
   <nav class="pond-menu" aria-label="Menu">
     <a href="index.html">Home</a>
@@ -16,15 +16,15 @@
     <a href="bingo.html">Paspoort</a>
   </nav>
 
-  <!-- Elk stukje tekst staat in een eigen wolkje (src/vangen.css); de wolkjes drijven een klein stukje heen en weer. -->
+  <!-- Each bit of text sits in its own cloud (src/catch.css); the clouds float back and forth a little. -->
   <main>
-    <a class="brand wolk wolk-logo" href="index.html"><img class="logo" src="images/logo.svg" alt="Afval &amp; Café – terug naar home"></a>
-    <h1 class="wolk wolk-titel">Doe mee!</h1>
-    <p class="wolk wolk-tekst">Je hoeft niets mee te nemen: wij zorgen voor prikkers en zakken. Kom gewoon langs en drink daarna gezellig mee.</p>
-    <p class="wolk wolk-tekst"><em>Stuur een mailtje naar afvalcafe@pm.me, dan nemen wij zsm contact met je op om kennis te maken!</em></p>
+    <a class="brand cloud cloud-logo" href="index.html"><img class="logo" src="images/logo.svg" alt="Afval &amp; Café – terug naar home"></a>
+    <h1 class="cloud cloud-title">Doe mee!</h1>
+    <p class="cloud cloud-text">Je hoeft niets mee te nemen: wij zorgen voor prikkers en zakken. Kom gewoon langs en drink daarna gezellig mee.</p>
+    <p class="cloud cloud-text"><em>Stuur een mailtje naar afvalcafe@pm.me, dan nemen wij zsm contact met je op om kennis te maken!</em></p>
   </main>
 
-  <div class="counter">Jij: <span id="score-jij">0</span><br>Anderen: <span id="score-anderen">0</span></div>
-  <script type="module" src="/src/doemee.ts"></script>
+  <div class="counter">Jij: <span id="score-you">0</span><br>Anderen: <span id="score-others">0</span></div>
+  <script type="module" src="/src/game.ts"></script>
 </body>
 </html>

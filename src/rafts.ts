@@ -1,15 +1,15 @@
-// Vlotten: foto's op boomstammen die als vaste voorwerpen door de vijver drijven (galerij).
-// De boomstam wordt door pond.ts op het canvas getekend; de foto is een knop in de HTML (.raft) die
-// hier mee wordt verplaatst. Vogels en afval kunnen er niet doorheen; de vlotten botsen ook op elkaar,
-// op de kanten van de vijver en op het menu.
-// Elk vlot heeft een thuisplek in een raster en wordt daar zachtjes naartoe getrokken, zodat de wandeling
-// rustig blijft. De vijver is zo hoog als het raster: de pagina scrolt erdoorheen (zie camera in pond.ts).
+// Rafts: photos on logs that drift through the pond as fixed objects (gallery).
+// The log is drawn on the canvas by pond.ts; the photo is a button in the HTML (.raft) that
+// gets moved along with it here. Birds and litter can't pass through; the rafts also collide with each other,
+// with the edges of the pond and with the menu.
+// Each raft has a home spot in a grid and is gently pulled back towards it, so the wander
+// stays calm. The pond is as tall as the grid: the page scrolls through it (see camera in pond.ts).
 
 export const RAFT_W = 54; // in pond-pixels: boomstam 54x15 (boomstam.png)...
 export const RAFT_H = 48; // ...met de foto van 48x36 erboven, 3 rijen over de stam heen
 export const LOG_Y = 33; // bovenkant van de stam binnen het vlot
 const MARGIN = 2; // minimale ruimte tussen vlotten en het menu
-const EDGE = 8; // ruimte tussen het raster en de rand van de vijver of het menu
+const EDGE = 8; // space between the grid and the edge of the pond or the menu
 const ROW_GAP = 20; // ruimte tussen de rijen van het raster
 const HOME_JITTER = 3; // thuisplekken liggen niet precies op het raster
 const PULL = 0.12; // hoe sterk een vlot naar huis wordt getrokken (veer)
@@ -24,10 +24,10 @@ interface Raft { el: HTMLElement; x: number; y: number; hx: number; hy: number; 
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
-// bij benadering normaal verdeeld (som van drie), gemiddelde 0 en spreiding 1
+// approximately normally distributed (sum of three), mean 0 and spread 1
 const noise = () => rand(-1, 1) + rand(-1, 1) + rand(-1, 1);
 
-// Hoeveel een rechthoek (x, y, RAFT_W x RAFT_H) een andere binnendringt, of null.
+// How much a rectangle (x, y, RAFT_W x RAFT_H) overlaps another one, or null.
 function overlap(ax: number, ay: number, b: Rect, pad: number) {
   const ox = Math.min(ax + RAFT_W, b.x1 + pad) - Math.max(ax, b.x0 - pad);
   const oy = Math.min(ay + RAFT_H, b.y1 + pad) - Math.max(ay, b.y0 - pad);
@@ -38,16 +38,16 @@ export function createRafts() {
   const rafts: Raft[] = [...document.querySelectorAll<HTMLElement>('.raft')].map((el) => ({
     el, x: 0, y: 0, hx: 0, hy: 0, vx: 0, vy: 0, dip: -1, active: false,
   }));
-  // gallery.ts meldt een klik; het vlot zakt even weg
+  // gallery.ts reports a click; the raft dips down briefly
   for (const r of rafts) r.el.addEventListener('plons', () => (r.dip = 0));
 
   const active = () => rafts.filter((r) => r.active);
   const rectOf = (r: Raft): Rect => ({ x0: r.x, y0: r.y, x1: r.x + RAFT_W, y1: r.y + RAFT_H });
 
-  // Zet de vlotten op hun thuisplek in een raster naast of onder het menu en geeft de hoogte van de
-  // vijver terug: minstens het scherm, maar hoger als het raster meer rijen nodig heeft.
+  // Places the rafts at their home spot in a grid next to or below the menu, and returns the height of the
+  // pond: at least the screen, but taller if the grid needs more rows.
   function layout(W: number, viewH: number, nav: Rect | null, phone: boolean) {
-    // op een telefoon staat het menu boven, anders links; het raster begint eronder of ernaast
+    // on a phone the menu sits on top, otherwise on the left; the grid starts below or beside it
     const x0 = !phone && nav ? nav.x1 + EDGE : EDGE;
     const y0 = phone && nav ? nav.y1 + EDGE : EDGE;
     const x1 = W - EDGE;
@@ -62,12 +62,12 @@ export function createRafts() {
       r.y = r.hy;
       r.vx = r.vy = 0;
       r.active = true;
-      r.el.classList.add('drijft');
+      r.el.classList.add('floating');
     });
     return Math.max(viewH, Math.ceil(y0 + rows * cellH + EDGE));
   }
 
-  // Botsing met een vast voorwerp (menu): het vlot schuift eruit en kaatst terug.
+  // Collision with a fixed object (menu): the raft slides out and bounces back.
   function bounceOff(r: Raft, b: Rect) {
     const o = overlap(r.x, r.y, b, MARGIN);
     if (!o) return;
@@ -82,7 +82,7 @@ export function createRafts() {
     }
   }
 
-  // Twee vlotten botsen: uit elkaar duwen en de snelheid langs de botsrichting ruilen (gelijke massa).
+  // Two rafts colliding: push them apart and swap velocity along the collision direction (equal mass).
   function collide(a: Raft, b: Raft) {
     const o = overlap(a.x, a.y, rectOf(b), 0);
     if (!o) return;
@@ -99,7 +99,7 @@ export function createRafts() {
     }
   }
 
-  // Elk vlot maakt een rustige, ongerichte wandeling: geen voorkeursrichting, alleen kleine duwtjes.
+  // Each raft does a calm, undirected walk: no preferred direction, just small nudges.
   function update(dt: number, W: number, H: number, fixed: Rect[], scale: number, still: boolean, cam: number, viewH: number) {
     dt = Math.max(0, dt); // het eerste beeld kan een iets negatieve tijdstap geven
     const list = active();
@@ -122,9 +122,9 @@ export function createRafts() {
 
     for (const r of list) {
       if (r.dip >= 0 && (r.dip += dt) >= DIP.length * DIP_STEP) r.dip = -1;
-      // op het pixelraster van de vijver: hele pond-pixels, ook voor de foto
+      // on the pond's pixel grid: whole pond pixels, for the photo too
       const dip = r.dip < 0 ? 0 : DIP[Math.floor(r.dip / DIP_STEP)];
-      const top = Math.round(r.y) + dip - cam; // schermpositie: de vijver scrolt onder het scherm door
+      const top = Math.round(r.y) + dip - cam; // screen position: the pond scrolls underneath the screen
       r.el.style.transform = `translate(${Math.round(r.x) * scale}px, ${top * scale}px)`;
       r.el.style.visibility = top + RAFT_H < 0 || top > viewH ? 'hidden' : ''; // buiten beeld ook niet met Tab bereikbaar
     }
@@ -135,7 +135,7 @@ export function createRafts() {
     layout,
     update,
     rects: () => active().map(rectOf),
-    // Positie van elke boomstam (links boven) voor het tekenen, met de dip erin.
+    // Position of each log (top left) for drawing, dip included.
     logs: () => active().map((r) => ({
       x: Math.round(r.x),
       y: Math.round(r.y) + LOG_Y + (r.dip < 0 ? 0 : DIP[Math.floor(r.dip / DIP_STEP)]),

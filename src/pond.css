@@ -24,7 +24,7 @@
   user-select: none;
 }
 
-/* ---------- Pagina ---------- */
+/* ---------- Page ---------- */
 :root {
   --ink: #16301a;
   --green: #2f6b3a;
@@ -37,19 +37,19 @@ body {
   line-height: 1.6;
 }
 
-/* Wit blok achter de tekst, met pixel-hoekjes */
+/* White panel behind the text, with pixel corners */
 main {
   position: relative;
   z-index: 1;
   box-sizing: border-box;
   width: min(600px, calc(100% - 48px));
-  margin: 56px auto 85vh; /* onderaan bijna een heel scherm water om in te spelen */
+  margin: 56px auto 85vh; /* almost a full screen of water at the bottom to play in */
   padding: 36px 36px 20px;
   background: rgba(255, 255, 255, .9);
   box-shadow: 0 -4px 0 0 var(--ink), 0 4px 0 0 var(--ink), -4px 0 0 0 var(--ink), 4px 0 0 0 var(--ink);
-  pointer-events: none; /* afval en vogels eronder blijven klikbaar */
+  pointer-events: none; /* litter and birds underneath stay clickable */
 }
-main h1 { margin: 8px 0; font-family: "EB Garamond", Georgia, serif; font-weight: 500; font-size: 2.6rem; letter-spacing: 0.01em; line-height: 1.15; color: #22502b; } /* lettertype lijkt op dat van het logo */
+main h1 { margin: 8px 0; font-family: "EB Garamond", Georgia, serif; font-weight: 500; font-size: 2.6rem; letter-spacing: 0.01em; line-height: 1.15; color: #22502b; } /* font resembles the one in the logo */
 .brand { display: block; margin: 0 0 20px; }
 main h1.brand { margin: 0 0 20px; }
 .logo { display: block; margin: 0 auto; width: min(420px, 80%); height: auto; }
@@ -65,8 +65,8 @@ main a { pointer-events: auto; }
   box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
 }
 
-/* Menu: doorzichtig met witte rand; bij hover/huidige pagina omgekeerd:
-   wit blok waar de tekst doorzichtig is (masker uit src/menu.ts). */
+/* Menu: transparent with a white border; on hover/current page inverted:
+   a white block with the text cut out as transparent (mask from src/menu.ts). */
 .pond-menu {
   position: relative;
   z-index: 2;
@@ -81,7 +81,7 @@ main a { pointer-events: auto; }
   padding: 16px 20px;
   font-family: "Press Start 2P", monospace;
   font-weight: normal;
-  font-size: 16px; /* veelvoud van 8 = scherpe pixels */
+  font-size: 16px; /* a multiple of 8 = crisp pixels */
   line-height: 1;
   color: #fff;
   text-decoration: none;
@@ -93,7 +93,7 @@ main a { pointer-events: auto; }
 }
 .pond-menu a[aria-current="page"], .pond-menu a:hover, .pond-menu a:focus-visible {
   background: #fff;
-  color: #000; /* reserve als het masker (nog) niet gebouwd is */
+  color: #000; /* fallback while the mask isn't built yet */
   text-shadow: none;
   box-shadow: none;
   outline: none;
@@ -106,18 +106,18 @@ main a { pointer-events: auto; }
   mask: var(--knockout) center / 100% 100% no-repeat;
 }
 
-/* Telefoon: smallere, compactere kaart met meer water opzij, en onderaan een bijna volledig scherm
-   water om in te spelen (de vijver staat vast, de kaart scrolt eroverheen). */
+/* Phone: narrower, more compact card with more water beside it, and almost a full screen of
+   water to play in (the pond stays fixed, the card scrolls over it). */
 @media (max-width: 699px) {
   main {
     width: calc(100% - 96px);
-    margin: 120px auto 85vh; /* ruimte (ongeveer een logohoogte) tussen menu en tekst om in te spelen */
+    margin: 120px auto 85vh; /* space (about one logo height) between menu and text to play in */
     padding: 16px 14px 4px;
   }
   .lead { font-size: 1rem; }
 }
 
-/* Vanaf tabletbreedte staat het menu als kolom links; de tekstkaart schuift ernaast. */
+/* From tablet width up the menu sits as a column on the left; the text card slides next to it. */
 @media (min-width: 700px) {
   .pond-menu {
     position: absolute;
@@ -128,14 +128,14 @@ main a { pointer-events: auto; }
     justify-content: flex-start;
     gap: 12px;
     width: 184px;
-    padding: 52px 20px 20px; /* bovenkant gelijk aan de rand van de tekstkaart (56px marge - 4px rand) */
+    padding: 52px 20px 20px; /* top matches the edge of the text card (56px margin - 4px border) */
   }
   main {
     width: min(600px, calc(100% - 240px));
     margin: 56px 24px 85vh 216px;
   }
 }
-/* Ruim genoeg: kaart weer gecentreerd. */
+/* Wide enough: card centered again. */
 @media (min-width: 1100px) {
   main {
     width: min(600px, calc(100% - 48px));
@@ -143,7 +143,7 @@ main a { pointer-events: auto; }
   }
 }
 
-/* ---------- Mijlpaal-melding ---------- */
+/* ---------- Milestone toast ---------- */
 .toast {
   position: fixed;
   left: 50%;
@@ -160,7 +160,7 @@ main a { pointer-events: auto; }
   background: #fff;
   border: 4px solid #16301a;
   box-shadow: 0 6px 0 #16301a;
-  pointer-events: auto; /* mailadres en kruisje moeten klikbaar zijn */
+  pointer-events: auto; /* email address and close button must stay clickable */
   animation: toast-in 0.25s ease-out;
 }
 .toast p { margin: 0 0 16px; }
@@ -197,7 +197,7 @@ main a { pointer-events: auto; }
   .toast { animation: none; }
 }
 
-/* ---------- Weetje van een vogel ---------- */
+/* ---------- Fact from a duck ---------- */
 .fact {
   position: fixed;
   z-index: 5;
@@ -213,7 +213,7 @@ main a { pointer-events: auto; }
   pointer-events: none;
   animation: fact-in 0.2s ease-out;
 }
-/* het hele wolkje is een link naar de bronnenpagina */
+/* the whole bubble is a link to the sources page */
 .fact-link {
   display: block;
   padding: 12px 14px;
@@ -228,7 +228,7 @@ main a { pointer-events: auto; }
   text-decoration: underline;
 }
 .fact-link:hover .fact-more, .fact-link:focus-visible .fact-more { background: #16301a; color: #fff; text-decoration: none; }
-/* staartje naar de vogel; --tail wordt door pond.ts gezet */
+/* little tail pointing at the duck; --tail is set by pond.ts */
 .fact::after {
   content: "";
   position: absolute;
@@ -237,7 +237,7 @@ main a { pointer-events: auto; }
   width: 0;
   height: 0;
   border: 7px solid transparent;
-  border-top: 22px solid #16301a; /* lang staartje, zodat duidelijk is welke vogel praat */
+  border-top: 22px solid #16301a; /* long tail, so it's clear which duck is talking */
 }
 .fact-out { opacity: 0; transition: opacity 0.3s; }
 @keyframes fact-in {

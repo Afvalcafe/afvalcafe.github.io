@@ -1,6 +1,6 @@
-﻿# Afval & CafÃ© website
+﻿# Afval & Café website
 
-Static site for Afval & CafÃ© (monthly litter-picking in Delft, followed by drinks; ages 20-30), published at afvalcafe.github.io via GitHub Pages.
+Static site for Afval & Café (monthly litter-picking in Delft, followed by drinks; ages 20-30), published at afvalcafe.github.io via GitHub Pages.
 
 ## Git
 - No Claude attribution in commits or PRs: no `Co-Authored-By` lines, no "Generated with Claude Code".
@@ -11,11 +11,11 @@ Static site for Afval & CafÃ© (monthly litter-picking in Delft, followed by dr
 - `vite.config.ts` builds every `.html` in the root automatically, so a new page needs no config.
 - `src/pond.ts` + `src/pond.css`: the pixel-art pond on `<canvas id="pond">` (ducks, coots, swans, lily pads, clickable litter). Drawn at low resolution into a pixel buffer and scaled up with CSS (`pixelated`). Uses `Math.random` throughout, so it is different on every load.
 - `galerij.html` + `src/rafts.ts` + `src/gallery.ts` + `src/gallery.css`: the gallery is the pond itself. Each photo (`.raft` button) floats on a log drawn on the canvas (`public/sprites/boomstam.png`); `rafts.ts` random-walks the rafts and makes them solid for birds and litter, `gallery.ts` handles the splash and lightbox. `src/pixel.ts` sets `--px` (one pond pixel in CSS px) so DOM sizes are whole pond pixels. Only as many rafts show as fit in 40% of the water; the lightbox still browses all photos. The gallery page is left out of the screenshot tests (everything on it moves randomly).
-- `doe-mee.html` + `src/doemee.ts` + `src/vangen.ts` + `src/vangen.css` + `src/achtergrond.ts` + `src/vogel.ts`: Doe mee heeft als achtergrond een spel (park met Delftse skyline). Afval en natuur vallen langzaam; de vuilniszak (sleep/muis/pijltjes) vangt afval (score "Jij"), wat gemist wordt blijft liggen en vormt een berg (per-kolom hoogtekaart, tot 40% van het scherm). Vallend afval dat de zak ook maar raakt is gevangen. Bij liggend afval komen er max. 3 poppetjes (willekeurige huid/haar/kleding, procedureel getekend) met grijper en eigen zak langs om het te rapen (score "Anderen"); ze blijven en pauzeren bij de koffietafel (rechtsonder, daar komt geen afval) als er niets ligt. De tekst staat in vier losse, licht drijvende pixel-wolkjes (logo, kop, twee alinea's; `public/sprites/wolkkader.png` als border-image); natuur op de berg vergaat na 8-14 s; de Nieuwe Kerk staat naast de wolk zodat hij zichtbaar blijft. Nooit af. Het spel is willekeurig en staat gemaskeerd (`#spel`) in de screenshottests.
-- `bingo.html` (Afvalpaspoort): staat op de rustige vijver (`data-vijver="rustig"` op body: pond.ts zonder afval en zonder botsing met `main`), met het menu erboven.
+- `doe-mee.html` + `src/game.ts` + `src/catch.ts` + `src/catch.css` + `src/background.ts` + `src/bird.ts`: Doe mee has a little game as its background (a park with the Delft skyline). Litter and nature fall slowly; the litter bag (drag/mouse/arrow keys) catches litter (score "Jij"), whatever is missed stays on the ground and builds up into a pile (a per-column height map, up to 40% of the screen). Falling litter that even just touches the bag is caught. When litter is lying around, up to 3 people (random skin/hair/clothing, drawn procedurally) come by with a grabber and their own bag to pick it up (score "Anderen"); they stay and take a break at the coffee table (bottom right, no litter lands there) when nothing is lying around. The text sits in four separate, gently floating pixel clouds (logo, heading, two paragraphs) drawn with CSS shapes; nature on the pile decays after 8-14 s; the Nieuwe Kerk stands next to the clouds so it stays visible. Never finished. The game is random and is masked (`#game-canvas`) in the screenshot tests.
+- `bingo.html` (Afvalpaspoort): sits on the calm pond (`data-pond="calm"` on the body: pond.ts without litter and without colliding with `main`), with the menu above it.
 - `src/menu.ts`: the nav's inverted hover/current state, built from a per-link canvas mask (blend modes are unreliable in Safari).
 - Font: Press Start 2P via `@fontsource`.
-- Site content and code comments are in Dutch. Keep new copy and comments in Dutch.
+- Code — identifiers, comments, CSS classes — is in English. Only rendered page content (HTML copy, alt text, aria-labels, button text, page titles) stays in Dutch; keep new copy in Dutch and new code in English. Sprite/asset filenames that were named in Dutch (e.g. `vogel.png`, `wolk.png`) are left as-is even though the code referencing them uses English identifiers.
 
 ## Commands
 - `npm run dev`: dev server

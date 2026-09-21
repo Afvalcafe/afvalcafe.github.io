@@ -1,14 +1,14 @@
-/* ---------- Galerij: foto's op boomstammen in de vijver ---------- */
-/* Alles is een veelvoud van --px (één pond-pixel, gezet door src/pixel.ts), zodat foto's op hetzelfde
-   pixelraster staan als het water. Positie en beweging komen uit src/rafts.ts; de boomstam onder elke
-   foto wordt door pond.ts op het canvas getekend. */
+/* ---------- Gallery: photos on logs in the pond ---------- */
+/* Everything is a multiple of --px (one pond pixel, set by src/pixel.ts), so photos line up on the same
+   pixel grid as the water. Position and movement come from src/rafts.ts; the log under each
+   photo is drawn on the canvas by pond.ts. */
 :root { --px: 4px; }
 
 .gallery {
   position: fixed;
   inset: 0;
   z-index: 1;
-  pointer-events: none; /* water, vogels en afval blijven klikbaar */
+  pointer-events: none; /* water, birds and litter stay clickable */
 }
 .gallery ul { margin: 0; padding: 0; list-style: none; }
 .sr-only {
@@ -20,9 +20,9 @@
   white-space: nowrap;
 }
 
-/* Vlot: foto van 48x36 pond-pixels boven een boomstam van 54x15 (die staat op het canvas). */
+/* Raft: a 48x36 pond-pixel photo above a 54x15 log (drawn on the canvas). */
 .raft {
-  display: none; /* pond.ts zet 'drijft' op de vlotten die passen */
+  display: none; /* pond.ts adds 'floating' to the rafts that fit */
   position: absolute;
   left: 0;
   top: 0;
@@ -30,7 +30,7 @@
   height: calc(48 * var(--px));
   will-change: transform;
 }
-.raft.drijft { display: block; }
+.raft.floating { display: block; }
 .raft button {
   position: absolute;
   left: calc(3 * var(--px));
@@ -48,7 +48,7 @@
 .raft button:hover, .raft button:focus-visible { outline: var(--px) solid #fff; outline-offset: var(--px); }
 .raft img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-/* ---------- Plons ---------- */
+/* ---------- Splash ---------- */
 .splash-drop {
   position: fixed;
   z-index: 9;
@@ -58,7 +58,7 @@
   pointer-events: none;
 }
 
-/* ---------- Grote weergave (zelfde stijl als .toast) ---------- */
+/* ---------- Lightbox (same style as .toast) ---------- */
 .lightbox {
   position: fixed;
   inset: 0;
@@ -93,7 +93,7 @@
   background: #e9f3ee;
 }
 .lightbox-caption {
-  min-height: 3.4em; /* twee regels, zodat het kader niet springt tussen foto's */
+  min-height: 3.4em; /* two lines, so the frame doesn't jump between photos */
   margin: 14px 0 0;
   font-size: 11px;
   line-height: 1.7;

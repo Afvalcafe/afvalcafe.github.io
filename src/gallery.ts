@@ -1,4 +1,4 @@
-// Galerij: foto's drijven op boomstammen (CSS), een klik geeft een plons en opent de grote weergave.
+// Gallery: photos float on logs (CSS), a click gives a splash and opens the large view.
 import './gallery.css';
 import { pondScale } from './pixel';
 
@@ -14,7 +14,7 @@ const photos: Photo[] = [...document.querySelectorAll<HTMLButtonElement>('.galle
   return { src: img.currentSrc || img.src, alt: img.alt, caption: button.dataset.caption ?? '', button, raft: button.closest<HTMLElement>('.raft')! };
 });
 
-// Plons bij de boomstam: druppels die omhoog spatten en terugvallen, terwijl het vlot even zakt.
+// Splash at the log: droplets spatter up and fall back, while the raft dips down briefly.
 function splash(raft: HTMLElement) {
   if (reduceMotion) return;
   const px = pondScale().scale;
@@ -33,7 +33,7 @@ function splash(raft: HTMLElement) {
     document.body.appendChild(drop);
     const dx = (Math.random() - 0.5) * 160;
     const up = 50 + Math.random() * 70;
-    // parabool in drie stappen: omhoog, top, terugvallen
+    // parabola in three steps: up, peak, fall back
     drop.animate(
       [
         { transform: 'translate(0, 0)', opacity: 1 },
@@ -88,7 +88,7 @@ function openLightbox(index: number, opener: HTMLElement) {
     else if (e.key === 'ArrowLeft') show(open!.index - 1);
     else if (e.key === 'ArrowRight') show(open!.index + 1);
     else if (e.key === 'Tab') {
-      // focus blijft in de weergave
+      // focus stays within the view
       const items = [...root.querySelectorAll<HTMLElement>('button')];
       const first = items[0];
       const last = items[items.length - 1];

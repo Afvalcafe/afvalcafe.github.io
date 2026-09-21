@@ -1,6 +1,6 @@
-// Menu-omkering: bij hover/huidige pagina is de knop een wit blok waar de tekst doorzichtig is.
-// Per knop tekenen we een masker (wit vlak met de tekst eruit gesneden) op een canvas, met het
-// lettertype van de pagina en op schermresolutie. Blend-modes werken niet overal (Safari).
+// Menu inversion: on hover/current page the link becomes a white block with the text cut out of it as transparent.
+// For each link we draw a mask (white panel with the text cut out) on a canvas, using the
+// page's font and at screen resolution. Blend modes don't work everywhere (Safari).
 
 function buildMasks(nav: HTMLElement) {
   const dpr = window.devicePixelRatio || 1;
@@ -29,7 +29,7 @@ function buildMasks(nav: HTMLElement) {
 const nav = document.querySelector<HTMLElement>('.pond-menu');
 if (nav) {
   const build = () => buildMasks(nav);
-  // Wacht tot het pixellettertype geladen is, anders wordt het masker met een reservefont getekend.
+  // Wait for the pixel font to load, otherwise the mask is drawn with a fallback font.
   void document.fonts.load('16px "Press Start 2P"').then(build, build);
   window.addEventListener('resize', build);
 }

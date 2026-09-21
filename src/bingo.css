@@ -23,7 +23,7 @@ h1 {
   text-shadow: 2px 2px 0 #16301a;
 }
 
-.uitleg {
+.explainer {
   margin: 0 auto 20px;
   max-width: 560px;
   font-size: 10px;
@@ -31,7 +31,7 @@ h1 {
   text-shadow: 1px 1px 0 #16301a;
 }
 
-#kaart {
+#card {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 4px;
@@ -40,7 +40,7 @@ h1 {
   border: 3px solid #16301a;
 }
 
-.vakje {
+.cell {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -56,7 +56,7 @@ h1 {
   touch-action: manipulation;
 }
 
-.vakje img {
+.cell img {
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -64,7 +64,7 @@ h1 {
   transition: opacity 0.15s;
 }
 
-.vakje span {
+.cell span {
   flex: none;
   display: flex;
   align-items: center;
@@ -77,27 +77,27 @@ h1 {
   overflow-wrap: anywhere;
 }
 
-/* doorgestreept: foto vervaagt en er komt een pixel-art kruis overheen */
-.vakje[aria-pressed='true'] img {
+/* crossed out: photo fades and a pixel-art cross is overlaid */
+.cell[aria-pressed='true'] img {
   opacity: 0.35;
 }
 
-.vakje[aria-pressed='true']::after {
+.cell[aria-pressed='true']::after {
   content: '';
   position: absolute;
   inset: 0;
-  /* pixel-art kruis (public/bingo/kruis.png) in Flexoki rood (#AF3029) met Flexoki-zwarte rand */
+  /* pixel-art cross (public/bingo/kruis.png) in Flexoki red (#AF3029) with a Flexoki-black outline */
   background: url('/bingo/kruis.png') center 30% / auto 60% no-repeat;
   image-rendering: pixelated;
   pointer-events: none;
 }
 
-.vakje:focus-visible {
+.cell:focus-visible {
   outline: 3px solid #f5b800;
   outline-offset: -3px;
 }
 
-#melding {
+#message {
   min-height: 1.5em;
   margin: 16px 0 8px;
   font-size: 14px;
@@ -119,9 +119,9 @@ h1 {
   box-shadow: 0 2px 0 #16301a;
 }
 
-/* Met de vijver erachter (pond.css): de kaart staat als wit vlak op de voorgrond, de dieren zwemmen erachter.
-   De regels hieronder winnen van die van pond.css, ongeacht de laadvolgorde. */
-body.paspoort main {
+/* With the pond behind it (pond.css): the card sits as a white panel in the foreground, the animals swim behind it.
+   The rules below win over pond.css's, regardless of load order. */
+body.passport main {
   width: auto;
   max-width: 760px;
   margin: 16px 12px 24px;
@@ -132,30 +132,30 @@ body.paspoort main {
   pointer-events: auto;
 }
 
-body.paspoort main .uitleg,
-body.paspoort main h1,
-body.paspoort main #melding {
+body.passport main .explainer,
+body.passport main h1,
+body.passport main #message {
   color: #16301a;
   text-shadow: none;
 }
 
-body.paspoort main h1 {
+body.passport main h1 {
   margin: 8px 0 16px;
   font-family: "Press Start 2P", monospace;
   font-size: clamp(18px, 6vw, 28px);
   line-height: 1.4;
 }
 
-/* Vanaf tabletbreedte staat het menu links (zie pond.css); de kaart schuift ernaast. */
+/* From tablet width up the menu sits on the left (see pond.css); the card slides next to it. */
 @media (min-width: 700px) {
-  body.paspoort main {
+  body.passport main {
     width: min(760px, calc(100% - 240px));
     max-width: none;
     margin: 56px 24px 24px 216px;
   }
 }
 @media (min-width: 1100px) {
-  body.paspoort main {
+  body.passport main {
     margin: 56px auto 24px;
   }
 }

@@ -1,0 +1,115 @@
+/* The park with the litter bag stays fixed behind the page; the text card and the menu sit above it (see pond.css). */
+#game-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* Dragging horizontally moves the bag; scrolling vertically still works as normal. */
+html,
+body {
+  touch-action: pan-y;
+}
+
+/* The text sits in separate clouds instead of one white panel: the skyline and the falling litter stay visible.
+   Each cloud is a round white blob with a couple of bumps on top, so it reads as a cloud instead of a box.
+   Below the clouds there's still a screen's worth of sky and park: scroll to see the game properly (bottom
+   margin from pond.css). */
+body.doe-mee {
+  overflow-x: clip; /* floating clouds must never cause a horizontal scrollbar */
+}
+
+body.doe-mee main {
+  margin-top: 24px; /* high on screen, leaving room for the game */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: calc(var(--px, 4px) * 2);
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+
+body.doe-mee main .cloud {
+  --bump: calc(var(--px, 4px) * 6);
+  position: relative;
+  box-sizing: border-box;
+  max-width: 100%;
+  margin: calc(var(--px, 4px) * 3) 0 0;
+  padding: var(--bump);
+  border: 0;
+  border-radius: 45% 55% 60% 40% / 60% 65% 35% 40%;
+  background: #fff;
+  box-shadow: 0 calc(var(--px, 4px) * 1.5) 0 rgba(30, 40, 30, 0.12);
+  animation: float var(--duration, 14s) steps(6, end) var(--start, 0s) infinite alternate;
+}
+/* Two round bumps on top give the cloud its fluffy shape, instead of square corners. */
+body.doe-mee main .cloud::before,
+body.doe-mee main .cloud::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--bump) * -1.4);
+  width: 42%;
+  height: 65%;
+  background: #fff;
+  border-radius: 50%;
+  z-index: -1;
+}
+body.doe-mee main .cloud::before { left: 10%; }
+body.doe-mee main .cloud::after { right: 12%; height: 55%; top: calc(var(--bump) * -1.1); }
+
+body.doe-mee main a.cloud {
+  display: block;
+}
+body.doe-mee main .cloud-logo .logo {
+  width: 150px;
+}
+body.doe-mee main h1.cloud {
+  font-size: 2rem;
+}
+body.doe-mee main .cloud-text {
+  max-width: min(100%, 420px);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+body.doe-mee main .cloud-text + .cloud-text {
+  margin-left: auto;
+}
+
+/* Each cloud floats in steps of one pond pixel, at its own pace. */
+.cloud:nth-child(1) { --duration: 15s; --distance: 5; }
+.cloud:nth-child(2) { --duration: 12s; --distance: -4; --start: -5s; }
+.cloud:nth-child(3) { --duration: 17s; --distance: -6; --start: -9s; }
+.cloud:nth-child(4) { --duration: 13s; --distance: 5; --start: -3s; }
+@keyframes float {
+  to { transform: translateX(calc(var(--px, 4px) * var(--distance, 5))); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cloud { animation: none; }
+}
+
+@media (max-width: 699px) {
+  body.doe-mee main {
+    width: calc(100% - 72px); /* leaves a strip of sky on the right for the Nieuwe Kerk */
+    margin-top: 16px; /* right below the menu */
+  }
+  body.doe-mee main .cloud-logo .logo {
+    width: 110px;
+  }
+  body.doe-mee main h1.cloud {
+    font-size: 1.6rem;
+  }
+  body.doe-mee main .cloud-text {
+    font-size: 0.85rem;
+  }
+}
+
+/* Two counters bottom-left: what you caught and what the others picked up. */
+.counter {
+  z-index: 3;
+  line-height: 1.7;
+}

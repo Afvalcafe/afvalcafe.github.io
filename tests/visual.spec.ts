@@ -9,9 +9,9 @@ for (const file of pages.filter((f) => f !== 'galerij.html')) {
     await page.evaluate(() => document.fonts.ready);
     await expect(page).toHaveScreenshot(`${file.replace('.html', '')}.png`, {
       fullPage: true,
-      // De vijver en het spel (Doe mee) zijn willekeurig en bewegend; alleen de pagina eromheen vergelijken.
+      // The pond and the game (Doe mee) are random and animated; only compare the page around them.
       // De bingofoto's schaalt WebKit niet elke keer pixel-voor-pixel gelijk; het raster en de labels blijven wel vergeleken.
-      mask: [page.locator('#pond'), page.locator('#spel'), page.locator('.vakje img')],
+      mask: [page.locator('#pond'), page.locator('#game-canvas'), page.locator('.cell img')],
     });
   });
 }

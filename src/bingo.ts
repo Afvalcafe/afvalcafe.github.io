@@ -1,14 +1,14 @@
-// Afvalpaspoort: 5x5 bingokaart. Tik een vakje om het door te strepen; een volle rij, kolom of diagonaal geeft confetti.
-// Statische site, dus de stand staat alleen in localStorage van deze browser.
+// Afvalpaspoort: 5x5 bingo card. Tap a cell to cross it off; a full row, column or diagonal gives confetti.
+// Static site, so the state only lives in this browser's localStorage.
 
 import '@fontsource/press-start-2p';
 import './bingo.css';
 import { confetti } from './confetti';
 
-const KANT = 5;
-const OPSLAG = 'afvalcafe-bingo';
-// Volgorde van de kaart, rij voor rij. De foto's staan in public/bingo/ (tools/maak_bingo_afbeeldingen.py).
-const VAKJES = [
+const SIZE = 5;
+const STORAGE_KEY = 'afvalcafe-bingo';
+// Order of the card, row by row. The photos live in public/bingo/ (tools/maak_bingo_afbeeldingen.py).
+const CELLS = [
   'LACHGAS-TANK', 'KLEDINGSTUK', 'ZAKJE (HONDEN)POEP', 'PLASTIC ZAKJE', 'FRUIT',
   'IETS MET STATIEGELD', 'PIEPSCHUIM', 'CONDOOM', 'SCHROEF', 'KNUFFELTJE',
   'ELEKTRONISCH APPARAAT', 'CHIPSZAK', 'FEESTSPULLEN', 'WIETZAKJE', 'GLAZEN FLES',
@@ -16,88 +16,88 @@ const VAKJES = [
   'BAL', 'GEBRUIKTE ZAKDOEK/WC-PAPIER :(', 'TOUW', 'BESTEK/SERVIES', 'MAKE-UP',
 ];
 
-// Alle lijnen als lijstjes van vakje-nummers: rijen, kolommen en twee diagonalen.
-const LIJNEN: number[][] = [];
-for (let i = 0; i < KANT; i++) {
-  LIJNEN.push(Array.from({ length: KANT }, (_, j) => i * KANT + j));
-  LIJNEN.push(Array.from({ length: KANT }, (_, j) => j * KANT + i));
+// All lines as lists of cell indices: rows, columns and the two diagonals.
+const LINES: number[][] = [];
+for (let i = 0; i < SIZE; i++) {
+  LINES.push(Array.from({ length: SIZE }, (_, j) => i * SIZE + j));
+  LINES.push(Array.from({ length: SIZE }, (_, j) => j * SIZE + i));
 }
-LIJNEN.push(Array.from({ length: KANT }, (_, i) => i * (KANT + 1)));
-LIJNEN.push(Array.from({ length: KANT }, (_, i) => (i + 1) * (KANT - 1)));
+LINES.push(Array.from({ length: SIZE }, (_, i) => i * (SIZE + 1)));
+LINES.push(Array.from({ length: SIZE }, (_, i) => (i + 1) * (SIZE - 1)));
 
-const kaart = document.getElementById('kaart')!;
-const melding = document.getElementById('melding')!;
-const doorgestreept = new Set<number>();
+const card = document.getElementById('card')!;
+const message = document.getElementById('message')!;
+const crossedOut = new Set<number>();
 
-function laad() {
+function load() {
   try {
-    const lijst = JSON.parse(localStorage.getItem(OPSLAG) ?? '[]');
-    if (Array.isArray(lijst)) for (const n of lijst) if (Number.isInteger(n) && n >= 0 && n < VAKJES.length) doorgestreept.add(n);
+    const list = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    if (Array.isArray(list)) for (const n of list) if (Number.isInteger(n) && n >= 0 && n < CELLS.length) crossedOut.add(n);
   } catch {
-    // geen localStorage (bijvoorbeeld privémodus): dan werkt de kaart tot je de pagina sluit
+    // no localStorage (e.g. private browsing): the card then only works until the page is closed
   }
 }
 
-function bewaar() {
+function save() {
   try {
-    localStorage.setItem(OPSLAG, JSON.stringify([...doorgestreept]));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...crossedOut]));
   } catch {
-    // zie laad()
+    // see load()
   }
 }
 
-const isVol = (lijn: number[]) => lijn.every((n) => doorgestreept.has(n));
+const isComplete = (line: number[]) => line.every((n) => crossedOut.has(n));
 
-// Lijnen die al vol zijn en dus niet nog eens confetti geven. Bij het laden vullen we dit met wat er al staat.
-const gevierd = new Set<number>();
-const werkGevierdBij = () => LIJNEN.forEach((lijn, i) => (isVol(lijn) ? gevierd.add(i) : gevierd.delete(i)));
+// Lines that are already complete, so they don't trigger confetti again. Filled with the saved state on load.
+const celebrated = new Set<number>();
+const updateCelebrated = () => LINES.forEach((line, i) => (isComplete(line) ? celebrated.add(i) : celebrated.delete(i)));
 
-const knoppen = VAKJES.map((label, n) => {
-  const knop = document.createElement('button');
-  knop.type = 'button';
-  knop.className = 'vakje';
+const buttons = CELLS.map((label, n) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'cell';
   const img = document.createElement('img');
   img.src = `${import.meta.env.BASE_URL}bingo/${String(n + 1).padStart(2, '0')}.webp`;
   img.alt = '';
-  const tekst = document.createElement('span');
-  tekst.textContent = label;
-  knop.append(img, tekst);
-  knop.addEventListener('click', () => wissel(n));
-  kaart.appendChild(knop);
-  return knop;
+  const text = document.createElement('span');
+  text.textContent = label;
+  button.append(img, text);
+  button.addEventListener('click', () => toggle(n));
+  card.appendChild(button);
+  return button;
 });
 
-function teken() {
-  knoppen.forEach((knop, n) => knop.setAttribute('aria-pressed', String(doorgestreept.has(n))));
+function render() {
+  buttons.forEach((button, n) => button.setAttribute('aria-pressed', String(crossedOut.has(n))));
 }
 
-function wissel(n: number) {
-  if (!doorgestreept.delete(n)) doorgestreept.add(n);
-  teken();
-  bewaar();
+function toggle(n: number) {
+  if (!crossedOut.delete(n)) crossedOut.add(n);
+  render();
+  save();
 
-  const nieuw = LIJNEN.filter((lijn, i) => isVol(lijn) && !gevierd.has(i)).length;
-  werkGevierdBij();
-  if (doorgestreept.size === VAKJES.length) {
-    melding.textContent = 'Volle kaart! Wat een afvalkampioen!';
+  const newlyCompleted = LINES.filter((line, i) => isComplete(line) && !celebrated.has(i)).length;
+  updateCelebrated();
+  if (crossedOut.size === CELLS.length) {
+    message.textContent = 'Volle kaart! Wat een afvalkampioen!';
     confetti(160);
-  } else if (nieuw > 0) {
-    melding.textContent = 'Bingo!';
-    confetti(60 + 30 * nieuw);
+  } else if (newlyCompleted > 0) {
+    message.textContent = 'Bingo!';
+    confetti(60 + 30 * newlyCompleted);
   } else {
-    melding.textContent = '';
+    message.textContent = '';
   }
 }
 
 document.getElementById('reset')!.addEventListener('click', () => {
-  if (doorgestreept.size > 0 && !confirm('Alle vakjes weer leegmaken?')) return;
-  doorgestreept.clear();
-  gevierd.clear();
-  melding.textContent = '';
-  teken();
-  bewaar();
+  if (crossedOut.size > 0 && !confirm('Alle vakjes weer leegmaken?')) return;
+  crossedOut.clear();
+  celebrated.clear();
+  message.textContent = '';
+  render();
+  save();
 });
 
-laad();
-werkGevierdBij();
-teken();
+load();
+updateCelebrated();
+render();

@@ -1,5 +1,5 @@
-// Pixel-art vijver: eenden, waterlelies, meerkoeten, zwanen, algen die tijdelijke sporen krijgen en klikbaar zwerfafval.
-// Alles wordt op een laag-resolutie canvas getekend en met CSS opgeschaald (pixelated).
+// Pixel-art pond: ducks, water lilies, coots, swans, algae that get temporary trails and clickable litter.
+// Everything is drawn on a low-resolution canvas and scaled up with CSS (pixelated).
 
 import '@fontsource/press-start-2p';
 import '@fontsource/eb-garamond/500.css';
@@ -13,12 +13,12 @@ const DUCK_COUNT = 4;
 const COOT_COUNT = 4;
 const SWAN_COUNT = 2;
 const LITTER_COUNT = 16;
-// Waterlelies drijven langzaam rond; klik je erop, dan bloeit er tijdelijk een witte bloem.
+// Water lilies float around slowly; click one and a white flower blooms for a while.
 const PAD_SPRITES = ['waterlelie', 'waterlelie', 'waterlelie', 'waterlelie', 'lelieblad', 'lelieblad', 'lelieblad2', 'lelieblad2'];
 const MAX_PER_KIND = 3; // nooit meer dan 3 van hetzelfde soort afval tegelijk
 const MILESTONE_FIRST = 10; // eerste melding bij 10, daarna na elke 20 extra (30, 50, ...)
 const MILESTONE_EVERY = 20;
-// Meldingen worden steeds enthousiaster en beginnen daarna weer van voren ({n} = aantal opgeruimd).
+// Messages get more and more enthusiastic, then loop back to the start ({n} = number collected).
 const MILESTONE_MESSAGES = [
   'Wauw wat ben jij hier goed in! Doe je mee met de volgende Afval & Café?',
   'Al {n} stuks afval opgeruimd?! Wij hebben jou echt nodig in ons team!',
@@ -33,10 +33,10 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 
 const WATER = ['#3b8bb0', '#3f92b6', '#4599bd'];
 const ALGAE = ['#2f6b2a', '#3f8232', '#519a3a', '#69b045', '#86c452'];
-// Al het afval is 16x16 zodat het even groot is.
+// All litter is 16x16 so it's the same size.
 const LITTER_SPRITES = ['zak', 'batterij', 'schoen', 'fles', 'beker', 'chips', 'sigaret'];
-// Na een klik op een peuk of batterij vertelt de dichtstbijzijnde vogel soms een weetje. Per soort afval een lijstje.
-// Cijfers zijn schattingen uit gangbare bronnen; vandaar "wel" en "kan".
+// After clicking a cigarette butt or battery, the nearest duck sometimes shares a fact. One list per kind of litter.
+// Figures are estimates from common sources; hence "can" and "may" in the Dutch text.
 const FACT_SECONDS = 7;
 const FACT_CHANCE = 0.35; // kans per klik, zodat het speciaal blijft
 const FACTS: Record<string, string[]> = {
@@ -85,7 +85,7 @@ function abgr(hex: string): number {
 
 const isMilestone = (n: number) => n === MILESTONE_FIRST || (n > MILESTONE_FIRST && (n - MILESTONE_FIRST) % MILESTONE_EVERY === 0);
 
-// Melding met mailadres en kruisje. Sluit na TOAST_SECONDS vanzelf; de confetti valt de eerste seconden mee.
+// Toast with email address and a close button. Closes itself after TOAST_SECONDS; confetti falls during the first few seconds.
 function showToast(n: number) {
   document.querySelector('.toast')?.remove();
   const index = n === MILESTONE_FIRST ? 0 : (n - MILESTONE_FIRST) / MILESTONE_EVERY;
@@ -121,8 +121,8 @@ function showToast(n: number) {
   timers.push(window.setTimeout(sluit, TOAST_SECONDS * 1000));
 }
 
-// Sprites worden in software in de pixelbuffer geschreven (geen drawImage): geen bemonstering door
-// de GPU, dus geen halve pixels of ontbrekende kolommen, en het hele beeld gaat in één keer naar het scherm.
+// Sprites are written into the pixel buffer in software (no drawImage): no resampling by
+// the GPU, so no half pixels or missing columns, and the whole frame goes to the screen in one go.
 interface Bitmap { w: number; h: number; px: Uint32Array }
 const bitmapCache = new Map<HTMLImageElement, { normal: Bitmap; flipped: Bitmap }>();
 
@@ -148,7 +148,7 @@ function bitmapsOf(img: HTMLImageElement) {
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
-// Klein 3x5 pixellettertype voor de praatwolkjes (W is 5 breed).
+// Small 3x5 pixel font for the speech bubbles (W is 5 wide).
 const GLYPHS: Record<string, string[]> = {
   A: ['010', '101', '111', '101', '101'],
   C: ['111', '100', '100', '100', '111'],
@@ -192,17 +192,17 @@ async function start(canvas: HTMLCanvasElement) {
   const water = WATER.map(abgr);
   const algae = ALGAE.map(abgr);
   const counter = document.getElementById('litter-count');
-  // Rustige vijver (afvalpaspoort): geen afval om aan te klikken, en de vogels zwemmen ook onder de pagina door.
-  const rustigeVijver = document.body.dataset.vijver === 'rustig';
-  const solid = (rustigeVijver ? ['.pond-menu'] : ['main', '.pond-menu']).map((q) => document.querySelector(q)).filter(
+  // Calm pond (afvalpaspoort): no litter to click, and the birds also swim underneath the page content.
+  const calmPond = document.body.dataset.pond === 'calm';
+  const solid = (calmPond ? ['.pond-menu'] : ['main', '.pond-menu']).map((q) => document.querySelector(q)).filter(
     (el): el is Element => el !== null,
   );
 
   let scale = 4;
   let W = 0;
   let H = 0; // hoogte van het scherm in pond-pixels
-  let WH = 0; // hoogte van de vijver: op de galerij hoger dan het scherm, de pagina scrolt er dan doorheen
-  // Textuurruimte (TW x TH) is tegelbaar en schuift langzaam onder het scherm door.
+  let WH = 0; // height of the pond: taller than the screen on the gallery, where the page then scrolls through it
+  // Texture space (TW x TH) is tileable and slowly scrolls underneath the screen.
   let TW = 0;
   let TH = 0;
   let cover = new Float32Array(0); // schermruimte: 1 = vol algen, 0 = schoon water
@@ -219,17 +219,17 @@ async function start(canvas: HTMLCanvasElement) {
   let pads: Litter[] = []; // waterlelies: zelfde beweging als afval, maar veel trager en niet klikbaar
   let sparkles: Sparkle[] = [];
   let respawn: number[] = [];
-  // Teller blijft bewaard tijdens het bladeren door de site.
+  // Counter is preserved while navigating around the site.
   let collected = Number(sessionStorage.getItem('litter-collected')) || 0;
   if (counter) counter.textContent = String(collected);
   let blocked: Rect[] = [];
   const raftSim = createRafts(); // galerij: foto's op boomstammen; op andere pagina's zijn er geen
   let raftRects: Rect[] = []; // bewegende, vaste voorwerpen: vogels en afval kunnen er niet doorheen
-  // Bovenkant van het scherm in de vijver, in hele pond-pixels; alleen op de galerij scrolt de vijver mee.
+  // Top of the screen within the pond, in whole pond pixels; only on the gallery does the pond scroll along.
   const camera = () => (raftSim.has ? clamp(Math.round(window.scrollY / scale), 0, Math.max(0, WH - H)) : 0);
 
-  // Zachte, tegelbare ruis: willekeurige waarden op een grof raster, bilineair geïnterpoleerd.
-  // `cell` moet TW en TH delen.
+  // Soft, tileable noise: random values on a coarse grid, bilinearly interpolated.
+  // `cell` must divide TW and TH.
   function smoothNoise(cell: number): Float32Array {
     const gw = TW / cell;
     const gh = TH / cell;
@@ -258,7 +258,7 @@ async function start(canvas: HTMLCanvasElement) {
     return out;
   }
 
-  // Grote viewporthoogte (100lvh): verandert niet als de adresbalk op een telefoon in- of uitklapt.
+  // Large viewport height (100lvh): doesn't change when the address bar collapses or expands on a phone.
   const probe = document.createElement('div');
   probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none';
   document.body.appendChild(probe);
@@ -289,7 +289,7 @@ async function start(canvas: HTMLCanvasElement) {
       const nav = document.querySelector('.pond-menu')?.getBoundingClientRect();
       const off = window.scrollY / scale;
       WH = raftSim.layout(W, H, nav ? { x0: nav.left / scale, y0: nav.top / scale + off, x1: nav.right / scale, y1: nav.bottom / scale + off } : null, phone.matches);
-      document.body.style.minHeight = `${WH * scale}px`; // de pagina is zo hoog als de vijver
+      document.body.style.minHeight = `${WH * scale}px`; // the page is as tall as the pond
     }
     raftRects = raftSim.rects();
     TW = Math.ceil(W / 48) * 48;
@@ -301,13 +301,13 @@ async function start(canvas: HTMLCanvasElement) {
     frame = ctx.createImageData(W, H);
     pixels = new Uint32Array(frame.data.buffer);
 
-    // Vlekken van dichte en ijle algen; de dichtheid blijft onder 1 zodat er water doorschijnt.
+    // Patches of dense and thin algae; the density stays below 1 so water shows through.
     const big = smoothNoise(48);
     const small = smoothNoise(16);
     dens = new Float32Array(tn);
     for (let i = 0; i < tn; i++) dens[i] = clamp(0.5 + 0.35 * big[i] + 0.25 * small[i], 0.6, 0.97);
 
-    // Kleurvariatie: grote zones plus korrel; de zones kleuren later langzaam op en neer.
+    // Color variation: large zones plus grain; the zones later shift color slowly up and down.
     const zone = smoothNoise(24);
     const zoneFine = smoothNoise(8);
     const phase = smoothNoise(48);
@@ -347,7 +347,7 @@ async function start(canvas: HTMLCanvasElement) {
     }
     const screens = Math.max(1, Math.round(WH / H));
     if (pads.length === 0) for (let k = 0; k < screens; k++) for (const name of PAD_SPRITES) pads.push(newPad(padByName.get(name)!));
-    if (litter.length === 0 && !rustigeVijver) for (let i = 0; i < LITTER_COUNT * screens; i++) litter.push(newLitter());
+    if (litter.length === 0 && !calmPond) for (let i = 0; i < LITTER_COUNT * screens; i++) litter.push(newLitter());
   }
 
   function updateBlocked() {
@@ -383,7 +383,7 @@ async function start(canvas: HTMLCanvasElement) {
     let x = 0;
     let y = 0;
     if (fromEdge) {
-      // Nieuw afval drijft van buiten het beeld naar binnen, niet ergens onder de tekstkaart of het menu.
+      // New litter drifts in from off-screen, never appearing under the text card or the menu.
       let vx = 0;
       let vy = 0;
       for (let tries = 0; tries < 40; tries++) {
@@ -407,7 +407,7 @@ async function start(canvas: HTMLCanvasElement) {
     return { img, x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.5, phase: rand(0, 6) };
   }
 
-  // Ruim algen op in een zachte schijf; hoe verder van het midden, hoe minder schoon.
+  // Clear algae in a soft disc; the further from the center, the less clean.
   function clearDisc(cx: number, cy: number, r: number) {
     const x0 = Math.max(0, Math.floor(cx - r));
     const x1 = Math.min(W - 1, Math.ceil(cx + r));
@@ -424,18 +424,18 @@ async function start(canvas: HTMLCanvasElement) {
     }
   }
 
-  // Op de telefoon is de kaart smal en zweven de dieren vrij eronderdoor (anders zitten ze in twee smalle kanalen).
+  // On a phone the card is narrow and the animals swim freely underneath it (otherwise they'd be stuck in two narrow channels).
   const phone = window.matchMedia('(max-width: 699px)');
 
   function updateDuck(d: Duck, dt: number) {
-    // De vogel die een weetje vertelt zwemt even niet weg.
+    // The duck telling a fact doesn't swim away for a moment.
     if (fact?.bird === d) {
       if (d.bubble && (d.bubble.age += dt) > BUBBLE_SECONDS) d.bubble = null;
       return;
     }
     d.turn = clamp(d.turn + rand(-1.5, 1.5) * dt * 2, -0.8, 0.8);
     d.angle += d.turn * dt;
-    // Zit het dier onder de tekstkaart, zwem dan naar de dichtstbijzijnde kant eruit.
+    // If the animal is under the text card, swim out towards the nearest edge.
     const under = (phone.matches ? undefined : blocked.find((r) => inRect(r, d.x, d.y, 0))) ?? raftRects.find((r) => inRect(r, d.x, d.y, 0));
     if (under) {
       const exits = [
@@ -455,12 +455,12 @@ async function start(canvas: HTMLCanvasElement) {
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       d.angle += clamp(diff, -1, 1) * dt * 4 * Math.min(edge, 1);
     }
-    // Blijf zichtbaar: draai weg van de tekstkaart, de kop en de vlotten.
+    // Stay visible: turn away from the text card, the edge and the rafts.
     const ax = d.x + Math.cos(d.angle) * 14;
     const ay = d.y + Math.sin(d.angle) * 14;
     const wall = (x: number, y: number) => (!phone.matches && inBlocked(x, y, 6)) || inRaft(x, y, 6);
     if (!wall(d.x, d.y) && wall(ax, ay)) d.angle += (d.turn >= 0 ? 1 : -1) * dt * 6;
-    // Ga andere dieren voor de neus uit de weg: draai weg van wie vlak voor je zwemt.
+    // Avoid running into other animals: turn away from whoever swims right in front of you.
     for (const o of ducks) {
       if (o === d) continue;
       const { dist, req } = clearance(o.x - d.x, o.y - d.y, bodyW(d.img) + bodyW(o.img), bodyH(d.img) + bodyH(o.img));
@@ -472,13 +472,13 @@ async function start(canvas: HTMLCanvasElement) {
     }
     d.x += Math.cos(d.angle) * d.speed * dt;
     d.y += Math.sin(d.angle) * d.speed * dt;
-    // Het spoor ontstaat achter de eend, niet ervoor.
+    // The trail forms behind the duck, not in front of it.
     clearDisc(d.x - Math.cos(d.angle) * 7, d.y - Math.sin(d.angle) * 7 + 2, 6);
     if (d.bubble && (d.bubble.age += dt) > BUBBLE_SECONDS) d.bubble = null;
   }
 
-  // Lichaam als ellips (halve breedte/hoogte); `clearance` geeft de afstand en de minimale afstand
-  // waarop twee ellipsen elkaar net niet raken, in de richting van dx,dy.
+  // Body as an ellipse (half width/height); `clearance` gives the distance and the minimal distance
+  // at which two ellipses just avoid touching, in the direction of dx,dy.
   const bodyW = (img: HTMLImageElement) => img.width * 0.42;
   const bodyH = (img: HTMLImageElement) => img.height * 0.4;
   function clearance(dx: number, dy: number, hw: number, hh: number) {
@@ -486,8 +486,8 @@ async function start(canvas: HTMLCanvasElement) {
     return { dist, req: 1 / Math.hypot(dx / dist / hw, dy / dist / hh) };
   }
 
-  // Niets mag over elkaar heen liggen: dieren duwen elkaar uit elkaar, afval ook, en dieren
-  // schuiven afval opzij (het afval duwt de dieren niet).
+  // Nothing may overlap: animals push each other apart, litter too, and animals
+  // shove litter aside (the litter doesn't push the animals).
   function separate(dt: number) {
     const k = Math.min(1, dt * 8);
     const push = (a: { x: number; y: number }, b: { x: number; y: number }, hw: number, hh: number, shareA: number) => {
@@ -509,7 +509,7 @@ async function start(canvas: HTMLCanvasElement) {
         push(ducks[i], ducks[j], bodyW(ducks[i].img) + bodyW(ducks[j].img), bodyH(ducks[i].img) + bodyH(ducks[j].img), 0.5);
       }
     }
-    // Vlotten zijn vast: vogels en afval die erin terechtkomen worden er zachtjes uitgeduwd.
+    // Rafts are fixed: animals and litter that end up on one get gently pushed out.
     const pushOut = (o: { x: number; y: number }, hw: number, hh: number) => {
       for (const r of raftRects) {
         const l = r.x0 - hw;
@@ -542,7 +542,7 @@ async function start(canvas: HTMLCanvasElement) {
     const ny = l.y + l.vy * dt;
     const hit = (x: number, y: number) => inBlocked(x, y, pad) || inRaft(x, y, pad);
     const inside = hit(l.x, l.y);
-    // Alleen terugkaatsen bij de rand als het afval naar buiten drijft: van buiten naar binnen mag altijd.
+    // Only bounce at the edge if the litter is drifting outward: drifting inward is always allowed.
     const outX = (nx < pad && l.vx < 0) || (nx > W - pad && l.vx > 0);
     const outY = (ny < pad && l.vy < 0) || (ny > WH - pad && l.vy > 0);
     if (outX || (!inside && hit(nx, l.y))) l.vx = -l.vx;
@@ -578,7 +578,7 @@ async function start(canvas: HTMLCanvasElement) {
     return undefined;
   }
 
-  // Weetje in een HTML-wolkje (het pixellettertype heeft te weinig letters); het volgt de vogel die het vertelt.
+  // Fact shown in an HTML bubble (the pixel font has too few letters); it follows the duck telling it.
   const factsByImg = new Map(litterImgs.map((img, i) => [img, FACTS[LITTER_SPRITES[i]] ?? []]));
   const FACT_KIND = new Map(litterImgs.map((img, i) => [img, LITTER_SPRITES[i]])); // ook het anker op de bronnenpagina
   const lastFact = new Map<string[], number>();
@@ -587,7 +587,7 @@ async function start(canvas: HTMLCanvasElement) {
   function tellFact(item: Litter) {
     const facts = factsByImg.get(item.img);
     if (!facts || facts.length === 0 || ducks.length === 0 || Math.random() > FACT_CHANCE) return;
-    // Volgend weetje van dit soort afval, zodat je niet steeds hetzelfde hoort.
+    // Next fact for this kind of litter, so you don't keep hearing the same one.
     const next = ((lastFact.get(facts) ?? -1) + 1 + Math.floor(Math.random() * (facts.length - 1))) % facts.length;
     lastFact.set(facts, next);
     const bird = ducks.reduce((a, b) => (Math.hypot(a.x - item.x, a.y - item.y) <= Math.hypot(b.x - item.x, b.y - item.y) ? a : b));
@@ -684,7 +684,7 @@ async function start(canvas: HTMLCanvasElement) {
 
   resize();
 
-  let viewTop = 0; // bovenkant van het scherm in de vijver (zie camera); tekenen gebeurt in vijvercoördinaten
+  let viewTop = 0; // top of the screen within the pond (see camera); drawing happens in pond coordinates
   function blit(bmp: Bitmap, x0: number, y0: number, alpha = 1) {
     for (let y = 0; y < bmp.h; y++) {
       const dy = y0 + y - viewTop;
@@ -733,7 +733,7 @@ async function start(canvas: HTMLCanvasElement) {
     };
     px(bx - 1, by - 1, w + 2, h + 2, INK);
     px(bx, by, w, h, '#ffffff');
-    // staartje richting de eend
+    // little tail pointing towards the duck
     const tx = clamp(cx, bx + 2, bx + w - 3);
     px(tx, by + h, 2, 2, '#ffffff');
     px(tx - 1, by + h + 1, 1, 1, INK);
@@ -778,12 +778,12 @@ async function start(canvas: HTMLCanvasElement) {
       litter.push(newLitter(true));
     }
 
-    // Het algenveld blijft op zijn plek en verkleurt alleen heel traag.
+    // The algae field stays in place and only changes color very slowly.
     const drift = reduceMotion ? 0 : time;
     for (let k = 0; k < 16; k++) shift[k] = 0.25 * Math.sin(drift * 0.15 + (k * Math.PI) / 8);
     const top = algae.length - 1;
     for (let y = 0; y < H; y++) {
-      const wy = y + cam; // rij in de vijver; de textuur is tegelbaar en herhaalt zich verticaal
+      const wy = y + cam; // row within the pond; the texture is tileable and repeats vertically
       for (let x = 0; x < W; x++) {
         const i = y * W + x;
         const j = (wy % TH) * TW + x;
@@ -802,14 +802,14 @@ async function start(canvas: HTMLCanvasElement) {
       const py0 = Math.round(p.y - b.h / 2) + bob(p.phase, 1);
       blit(b, px0, py0);
       if (p.bloom !== undefined) {
-        // knop -> bloem -> weer knop, daarna weg
+        // bud -> flower -> bud again, then gone
         const stage = p.bloom < 0.4 || p.bloom > BLOOM_SECONDS - 0.8 ? budImg : bloomImg;
         blit(bitmapsOf(stage).normal, px0, py0);
       }
     }
     const logBmp = bitmapsOf(logImg).normal;
     for (const log of raftSim.logs()) {
-      // de vlotten schuiven door de algen en laten een spoor open water achter
+      // the rafts slide through the algae, leaving a trail of open water behind
       for (const cx of [13, 27, 41]) clearDisc(log.x + cx, log.y + 9, 7);
       blit(logBmp, log.x, log.y);
     }
