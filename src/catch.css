@@ -15,9 +15,9 @@ body {
 }
 
 /* The text sits in separate clouds instead of one white panel: the skyline and the falling litter stay visible.
-   Each cloud is a round white blob with a couple of bumps on top, so it reads as a cloud instead of a box.
-   Below the clouds there's still a screen's worth of sky and park: scroll to see the game properly (bottom
-   margin from pond.css). */
+   Each cloud is a blocky pixel silhouette (clip-path staircase, flat bottom, bumpy top) to match the rest of
+   the pixel art instead of a smooth rounded box. Below the clouds there's still a screen's worth of sky and
+   park: scroll to see the game properly (bottom margin from pond.css). */
 body.doe-mee {
   overflow-x: clip; /* floating clouds must never cause a horizontal scrollbar */
 }
@@ -34,33 +34,46 @@ body.doe-mee main {
   box-shadow: none;
 }
 
+/* A stepped (right-angle) silhouette: flat bottom, bumpy top made of two "puffs", drawn with only
+   horizontal/vertical segments so it stays crisp at the pond's pixel scale (no diagonal antialiasing). */
 body.doe-mee main .cloud {
   --bump: calc(var(--px, 4px) * 6);
+  --puff: calc(var(--px, 4px) * 3); /* extra headroom above the text for the pixel puffs */
   position: relative;
+  isolation: isolate; /* keeps the ::before shadow's negative z-index contained to this cloud */
   box-sizing: border-box;
   max-width: 100%;
   margin: calc(var(--px, 4px) * 3) 0 0;
-  padding: var(--bump);
+  padding: calc(var(--bump) + var(--puff)) var(--bump) var(--bump);
   border: 0;
-  border-radius: 45% 55% 60% 40% / 60% 65% 35% 40%;
   background: #fff;
-  box-shadow: 0 calc(var(--px, 4px) * 1.5) 0 rgba(30, 40, 30, 0.12);
+  /* The steps use fixed pixel heights (not %), so the puffs stay a constant size regardless of how tall the
+     box gets with more text — only the very top strip is notched, the rest of the box is a plain rectangle.
+     Two rounded tufts (each a multi-step staircase, like a pixel-art circle) instead of single-column spikes,
+     so the silhouette reads as a cloud rather than castle battlements. */
+  clip-path: polygon(
+    0% 100%, 0% calc(var(--px, 4px) * 7), 6.25% calc(var(--px, 4px) * 7), 6.25% calc(var(--px, 4px) * 6),
+    12.5% calc(var(--px, 4px) * 6), 12.5% calc(var(--px, 4px) * 4), 18.75% calc(var(--px, 4px) * 4), 18.75% calc(var(--px, 4px) * 3),
+    25% calc(var(--px, 4px) * 3), 25% calc(var(--px, 4px) * 1), 31.25% calc(var(--px, 4px) * 1), 31.25% 0,
+    43.75% 0, 43.75% calc(var(--px, 4px) * 1), 50% calc(var(--px, 4px) * 1), 50% calc(var(--px, 4px) * 2),
+    56.25% calc(var(--px, 4px) * 2), 56.25% calc(var(--px, 4px) * 1), 62.5% calc(var(--px, 4px) * 1), 62.5% 0,
+    75% 0, 75% calc(var(--px, 4px) * 1), 81.25% calc(var(--px, 4px) * 1), 81.25% calc(var(--px, 4px) * 3),
+    87.5% calc(var(--px, 4px) * 3), 87.5% calc(var(--px, 4px) * 4), 93.75% calc(var(--px, 4px) * 4), 93.75% calc(var(--px, 4px) * 6),
+    100% calc(var(--px, 4px) * 6), 100% 100%
+  );
   animation: float var(--duration, 14s) steps(6, end) var(--start, 0s) infinite alternate;
 }
-/* Two round bumps on top give the cloud its fluffy shape, instead of square corners. */
-body.doe-mee main .cloud::before,
-body.doe-mee main .cloud::after {
+/* A second, identically-sized copy of the same shape sits behind as a flat drop shadow, nudged down with
+   transform (not inset/top) so its box stays the same size and the inherited clip-path lines up exactly. */
+body.doe-mee main .cloud::before {
   content: '';
   position: absolute;
-  top: calc(var(--bump) * -1.4);
-  width: 42%;
-  height: 65%;
-  background: #fff;
-  border-radius: 50%;
+  inset: 0;
+  transform: translateY(calc(var(--px, 4px) * 1.5));
+  background: rgba(30, 40, 30, 0.15);
+  clip-path: inherit;
   z-index: -1;
 }
-body.doe-mee main .cloud::before { left: 10%; }
-body.doe-mee main .cloud::after { right: 12%; height: 55%; top: calc(var(--bump) * -1.1); }
 
 body.doe-mee main a.cloud {
   display: block;
