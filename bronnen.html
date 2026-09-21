@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bronnen – Afval &amp; Café</title>
+</head>
+<body class="sub">
+  <canvas id="pond" aria-hidden="true"></canvas>
+
+  <nav class="pond-menu" aria-label="Menu">
+    <a href="index.html">Home</a>
+    <a href="over-ons.html">Over ons</a>
+    <a href="agenda.html">Agenda</a>
+    <a href="doe-mee.html">Doe mee</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <main>
+    <a class="brand" href="index.html"><img class="logo" src="images/logo.svg" alt="Afval &amp; Café – terug naar home"></a>
+    <h1>Bronnen</h1>
+    <p>De weetjes die de vogels in de vijver vertellen komen uit deze bronnen.</p>
+
+    <h2 id="sigaret">Sigarettenpeuken</h2>
+    <ul>
+      <li>Eén peuk kan tot wel 1000 liter water vervuilen, en er zijn peuken gevonden in de magen van vissen en vogels: <a href="https://www.trimbos.nl/actueel/nieuws/sigaret-brengt-grote-schade-aan-milieu/">Trimbos-instituut, Sigaret brengt grote schade aan milieu</a>.</li>
+      <li>Een peuk blijft 12 tot 15 jaar in het water liggen en valt uiteen in microplastics: <a href="https://www.peukenzee.nl/kennisbank/wat-doet-een-sigarettenpeuk-in-het-water/">Peukenzee, Wat doet een sigarettenpeuk in het water?</a></li>
+    </ul>
+
+    <h2 id="batterij">Batterijen</h2>
+    <ul>
+      <li>Winkels die batterijen verkopen moeten lege batterijen terugnemen, sommige stoffen zijn schadelijk voor de natuur en nikkel en koper gaan terug in nieuwe batterijen: <a href="https://www.milieucentraal.nl/minder-afval/afval-scheiden/lege-batterijen-en-accu-s-inleveren/">Milieu Centraal, Lege batterijen en accu’s inleveren</a>.</li>
+    </ul>
+  </main>
+
+  <div class="counter" aria-live="polite">Opgeruimd: <span id="litter-count">0</span></div>
+  <script type="module" src="/src/pond.ts"></script>
+</body>
+</html>
