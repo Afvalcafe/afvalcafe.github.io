@@ -19,11 +19,10 @@ const MILESTONE_EVERY = 20;
 const MILESTONE_MESSAGES = [
   'Wauw wat ben jij hier goed in! Doe je mee met de volgende Afval & Café?',
   'Al {n} stuks afval opgeruimd?! Wij hebben jou echt nodig in ons team!',
-  '{n} stuks! Jij bent een echte held van de Delftse natuur. Kom eens meeprikken!',
-  '{n} al?! Jij hoort gewoon bij Afval & Café. Stuur ons een mailtje en prik mee!',
-  'Onvoorstelbaar: {n} stuks! Jij bent de afvalkampioen van de vijver. Kom langs!',
+  '{n} stuks! Zo help je de Delftse natuur echt vooruit. Kom eens meeprikken!',
+  '{n} al?! Jij hoort gewoon bij Afval & Café. Kom een keer mee prikken!',
+  'Onvoorstelbaar: {n} stuks! Jij bent de afvalkampioen van de gracht. Kom langs!',
 ];
-const CONTACT_EMAIL = 'afvalcafe@pm.me';
 const TOAST_SECONDS = 15; // sluit vanzelf, of eerder met het kruisje
 const BLOOM_SECONDS = 8; // zo lang blijft een bloem staan
 const CONFETTI_COLORS = ['#2f9be0', '#f5b800', '#7dc95e', '#e8563f', '#b06ad9', '#ff8fb1'];
@@ -119,11 +118,11 @@ function showToast(n: number) {
   close.textContent = 'X';
   const text = document.createElement('p');
   text.textContent = MILESTONE_MESSAGES[index % MILESTONE_MESSAGES.length].replace('{n}', String(n));
-  const mail = document.createElement('a');
-  mail.className = 'toast-mail';
-  mail.href = `mailto:${CONTACT_EMAIL}`;
-  mail.textContent = CONTACT_EMAIL;
-  el.append(close, text, mail);
+  const link = document.createElement('a');
+  link.className = 'toast-link';
+  link.href = `${import.meta.env.BASE_URL}doe-mee.html`;
+  link.textContent = 'Doe mee!';
+  el.append(close, text, link);
   document.body.appendChild(el);
 
   const timers: number[] = [];
@@ -459,11 +458,63 @@ async function start(canvas: HTMLCanvasElement) {
     const ax = d.x + Math.cos(d.angle) * 14;
     const ay = d.y + Math.sin(d.angle) * 14;
     if (!phone.matches && !inBlocked(d.x, d.y, 6) && inBlocked(ax, ay, 6)) d.angle += (d.turn >= 0 ? 1 : -1) * dt * 6;
+    // Ga andere dieren voor de neus uit de weg: draai weg van wie vlak voor je zwemt.
+    for (const o of ducks) {
+      if (o === d) continue;
+      const { dist, req } = clearance(o.x - d.x, o.y - d.y, bodyW(d.img) + bodyW(o.img), bodyH(d.img) + bodyH(o.img));
+      const look = req * 1.8;
+      if (dist >= look) continue;
+      let diff = Math.atan2(o.y - d.y, o.x - d.x) - d.angle;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      if (Math.abs(diff) < Math.PI * 0.6) d.angle -= (diff >= 0 ? 1 : -1) * (1 - dist / look) * dt * 5;
+    }
     d.x += Math.cos(d.angle) * d.speed * dt;
     d.y += Math.sin(d.angle) * d.speed * dt;
     // Het spoor ontstaat achter de eend, niet ervoor.
     clearDisc(d.x - Math.cos(d.angle) * 7, d.y - Math.sin(d.angle) * 7 + 2, 6);
     if (d.bubble && (d.bubble.age += dt) > BUBBLE_SECONDS) d.bubble = null;
+  }
+
+  // Lichaam als ellips (halve breedte/hoogte); `clearance` geeft de afstand en de minimale afstand
+  // waarop twee ellipsen elkaar net niet raken, in de richting van dx,dy.
+  const bodyW = (img: HTMLImageElement) => img.width * 0.42;
+  const bodyH = (img: HTMLImageElement) => img.height * 0.4;
+  function clearance(dx: number, dy: number, hw: number, hh: number) {
+    const dist = Math.hypot(dx, dy) || 0.001;
+    return { dist, req: 1 / Math.hypot(dx / dist / hw, dy / dist / hh) };
+  }
+
+  // Niets mag over elkaar heen liggen: dieren duwen elkaar uit elkaar, afval ook, en dieren
+  // schuiven afval opzij (het afval duwt de dieren niet).
+  function separate(dt: number) {
+    const k = Math.min(1, dt * 8);
+    const push = (a: { x: number; y: number }, b: { x: number; y: number }, hw: number, hh: number, shareA: number) => {
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+      if (Math.abs(dx) + Math.abs(dy) < 0.01) { dx = rand(-1, 1); dy = rand(-1, 1); }
+      const { dist, req } = clearance(dx, dy, hw, hh);
+      if (dist >= req) return;
+      const move = (req - dist) * k;
+      const ux = dx / dist;
+      const uy = dy / dist;
+      a.x -= ux * move * shareA;
+      a.y -= uy * move * shareA;
+      b.x += ux * move * (1 - shareA);
+      b.y += uy * move * (1 - shareA);
+    };
+    for (let i = 0; i < ducks.length; i++) {
+      for (let j = i + 1; j < ducks.length; j++) {
+        push(ducks[i], ducks[j], bodyW(ducks[i].img) + bodyW(ducks[j].img), bodyH(ducks[i].img) + bodyH(ducks[j].img), 0.5);
+      }
+    }
+    const binnen = (l: Litter) => l.x > 8 && l.x < W - 8 && l.y > 8 && l.y < H - 8; // afval dat nog binnendrijft laten we met rust
+    for (let i = 0; i < litter.length; i++) {
+      if (!binnen(litter[i])) continue;
+      for (let j = i + 1; j < litter.length; j++) {
+        if (binnen(litter[j])) push(litter[i], litter[j], 14, 14, 0.5);
+      }
+      for (const d of ducks) push(d, litter[i], bodyW(d.img) + 6, bodyH(d.img) + 6, 0); // alleen het afval schuift
+    }
   }
 
   function updateLitter(l: Litter, dt: number) {
@@ -695,6 +746,7 @@ async function start(canvas: HTMLCanvasElement) {
       if (p.bloom !== undefined && (p.bloom += dt) > BLOOM_SECONDS) p.bloom = undefined; // bloem verdwijnt weer
     });
     litter.forEach((l) => updateLitter(l, dt));
+    separate(dt);
     respawn = respawn.map((t) => t - dt);
     while (respawn.some((t) => t <= 0)) {
       respawn.splice(respawn.findIndex((t) => t <= 0), 1);
