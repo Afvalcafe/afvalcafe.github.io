@@ -146,6 +146,30 @@ body.passport main h1 {
   line-height: 1.4;
 }
 
+/* Phone: the menu plus title/explainer ate up nearly half the visible viewport before any of the card showed,
+   pushing the grid (and the reset button) below the fold. Trim them so more of the card fits on screen. */
+@media (max-width: 699px) {
+  body.passport .pond-menu {
+    padding-top: 12px;
+    gap: 8px;
+  }
+  body.passport .pond-menu a {
+    height: 36px;
+  }
+  body.passport main {
+    margin-top: 8px;
+    padding-top: 12px;
+  }
+  body.passport main h1 {
+    margin: 4px 0 8px;
+    font-size: clamp(16px, 5.5vw, 24px);
+  }
+  body.passport main .explainer {
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+}
+
 /* From tablet width up the menu sits on the left (see pond.css); the card slides next to it. */
 @media (min-width: 700px) {
   body.passport main {
