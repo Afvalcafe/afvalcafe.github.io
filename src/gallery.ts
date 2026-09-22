@@ -7,11 +7,18 @@ const SPLASH_MS = 320; // zo lang wachten we met openen, zodat de plons te zien 
 const DROP_COUNT = 14;
 const DROP_COLORS = ['#fff', '#fff', '#bfe6f5', '#8fd0ea'];
 
-interface Photo { src: string; alt: string; caption: string; button: HTMLButtonElement; raft: HTMLElement }
+interface Photo { src: string; alt: string; caption: string; location: string; button: HTMLButtonElement; raft: HTMLElement }
 
 const photos: Photo[] = [...document.querySelectorAll<HTMLButtonElement>('.gallery button')].map((button) => {
   const img = button.querySelector('img')!;
-  return { src: img.currentSrc || img.src, alt: img.alt, caption: button.dataset.caption ?? '', button, raft: button.closest<HTMLElement>('.raft')! };
+  return {
+    src: img.currentSrc || img.src,
+    alt: img.alt,
+    caption: button.dataset.caption ?? '',
+    location: button.dataset.location ?? '',
+    button,
+    raft: button.closest<HTMLElement>('.raft')!,
+  };
 });
 
 // Splash at the log: droplets spatter up and fall back, while the raft dips down briefly.
@@ -56,6 +63,7 @@ function show(index: number) {
   img.src = p.src;
   img.alt = p.alt;
   open.root.querySelector('.lightbox-text')!.textContent = p.caption;
+  open.root.querySelector('.lightbox-location')!.textContent = p.location;
   open.root.querySelector('.lightbox-count')!.textContent = `${open.index + 1} / ${n}`;
 }
 
@@ -70,7 +78,7 @@ function openLightbox(index: number, opener: HTMLElement) {
         <button type="button" class="lightbox-nav lightbox-prev" aria-label="Vorige foto">&lt;</button>
         <button type="button" class="lightbox-nav lightbox-next" aria-label="Volgende foto">&gt;</button>
       </div>
-      <p class="lightbox-caption" aria-live="polite"><span class="lightbox-text"></span><span class="lightbox-count"></span></p>
+      <p class="lightbox-caption" aria-live="polite"><span class="lightbox-text"></span><span class="lightbox-location"></span><span class="lightbox-count"></span></p>
     </div>`;
   document.body.appendChild(root);
   document.documentElement.style.overflow = 'hidden';
