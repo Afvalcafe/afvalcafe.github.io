@@ -18,9 +18,31 @@ function buildMasks(nav: HTMLElement) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = 'destination-out';
-    ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(a.textContent ?? '', parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), h / 2 + 1);
+    // The Home link swaps between an icon (phones) and plain text (everywhere else, see src/pond.css); whichever
+    // is actually visible gets cut out of the mask, the same way a normal link's text does below.
+    const icon = a.querySelector<SVGSVGElement>('svg.home-icon');
+    const path = icon?.querySelector('path');
+    if (icon && path && getComputedStyle(icon).display !== 'none') {
+      const iconBox = icon.getBoundingClientRect();
+      const viewBox = icon.viewBox.baseVal;
+      const scale = iconBox.width / viewBox.width;
+      ctx.save();
+      ctx.translate(iconBox.left - box.left, iconBox.top - box.top);
+      ctx.scale(scale, scale);
+      ctx.fill(new Path2D(path.getAttribute('d') ?? ''), 'evenodd');
+      ctx.restore();
+    } else {
+      ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      ctx.textBaseline = 'middle';
+      // On phones the link centers its text (see the max-width: 699px rules in src/pond.css); on a flex link
+      // fillText needs to match that centering itself, or the cutout lands where left-aligned text would be.
+      if (cs.display === 'flex') {
+        ctx.textAlign = 'center';
+        ctx.fillText(a.textContent ?? '', w / 2, h / 2 + 1);
+      } else {
+        ctx.fillText(a.textContent ?? '', parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft), h / 2 + 1);
+      }
+    }
     a.style.setProperty('--knockout', `url(${c.toDataURL('image/png')})`);
   }
   nav.dataset.knockout = '';

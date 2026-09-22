@@ -105,6 +105,15 @@ main a { pointer-events: auto; }
   -webkit-mask: var(--knockout) center / 100% 100% no-repeat;
   mask: var(--knockout) center / 100% 100% no-repeat;
 }
+/* Forces the phone menu's row split at a fixed point (see the max-width: 699px block); irrelevant elsewhere. */
+.pond-menu .menu-break {
+  display: none;
+}
+/* Home is a house icon on phones (below) and plain text everywhere else; buildMasks() in src/menu.ts detects
+   which one is visible and cuts that shape out of the knockout mask, same as it does for a normal link's text. */
+.pond-menu a.icon-home .home-icon {
+  display: none;
+}
 
 /* Phone: narrower, more compact card with more water beside it, and almost a full screen of
    water to play in (the pond stays fixed, the card scrolls over it). */
@@ -115,6 +124,44 @@ main a { pointer-events: auto; }
     padding: 16px 14px 4px;
   }
   .lead { font-size: 1rem; }
+
+  /* A .menu-break (flex-basis: 100%) forces the row split at a fixed point in the link order, instead of
+     flex-wrap's one-row-per-link on narrow phones (an item only moves to its own row once nothing else fits
+     beside it). Every link left in a row then grows to fill it, so both rows end up evenly spaced — except
+     Home, which stays sized to its own icon instead of stretching as wide as a text link. */
+  .pond-menu {
+    padding: 20px 16px 0;
+  }
+  .pond-menu a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    height: 44px; /* fixed, not stretch: align-items: stretch only unifies height within one flex line, and the
+      Home icon (20px + fixed padding) and a text label (font line height + padding) don't naturally agree,
+      so the row holding the icon came out taller than the one below it */
+    padding: 0 4px;
+    font-size: 11px;
+    text-align: center;
+  }
+  .pond-menu .menu-break {
+    display: block;
+    flex-basis: 100%;
+    height: 0;
+  }
+  .pond-menu a.icon-home {
+    flex: 0 0 auto;
+    width: 52px;
+  }
+  .pond-menu a.icon-home .home-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+    image-rendering: pixelated;
+  }
+  .pond-menu a.icon-home .home-text {
+    display: none;
+  }
 }
 
 /* From tablet width up the menu sits as a column on the left; the text card slides next to it. */

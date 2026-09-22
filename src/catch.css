@@ -41,15 +41,17 @@ body.doe-mee main {
    heading isn't one of these: see .cloud-title further down, where the letters themselves are the cloud. */
 body.doe-mee main .cloud {
   --shape: url('/sprites/cloud-round.png');
+  --underline: 10%; /* bottom band tinted like the background clouds' shaded underside (public/sprites/wolk*.png) */
   position: relative;
-  isolation: isolate; /* keeps the ::before shadow's negative z-index contained to this cloud */
   box-sizing: border-box;
   width: fit-content; /* shrink to the content's own size — main's own fixed width (pond.css) otherwise wins */
   max-width: 100%;
   margin: calc(var(--px, 4px) * 4) 0 0;
   padding: calc(var(--px, 4px) * 13) 24% calc(var(--px, 4px) * 9);
   border: 0;
-  background: #fff;
+  background: linear-gradient(to bottom,
+    #fff 0%, #fff calc(100% - var(--underline)),
+    #dcebf7 calc(100% - var(--underline)), #dcebf7 100%);
   image-rendering: pixelated;
   mask-image: var(--shape);
   -webkit-mask-image: var(--shape);
@@ -57,23 +59,11 @@ body.doe-mee main .cloud {
   -webkit-mask-repeat: no-repeat;
   mask-size: 100% 100%;
   -webkit-mask-size: 100% 100%;
+  /* drop-shadow (not a ::before pseudo) so the shadow paints behind the masked shape: a pseudo-element with
+     z-index: -1 still paints above its stacking-context parent's own background per the CSS stacking order,
+     which washed the shadow color over almost the whole cloud instead of just peeking out past its edge. */
+  filter: drop-shadow(0 calc(var(--px, 4px) * 1.5) 0 rgba(30, 40, 30, 0.15));
   animation: float var(--duration, 14s) steps(6, end) var(--start, 0s) infinite alternate;
-}
-/* A second, identically-sized copy of the same shape sits behind as a flat drop shadow, nudged down with
-   transform (not inset/top) so its box stays the same size and the inherited mask lines up exactly. */
-body.doe-mee main .cloud::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  transform: translateY(calc(var(--px, 4px) * 1.5));
-  background: rgba(30, 40, 30, 0.15);
-  mask-image: inherit;
-  -webkit-mask-image: inherit;
-  mask-repeat: inherit;
-  -webkit-mask-repeat: inherit;
-  mask-size: inherit;
-  -webkit-mask-size: inherit;
-  z-index: -1;
 }
 
 /* The heading itself is drawn as pixel-art bubble lettering — a thick pixel-stepped ink outline plus a
@@ -129,6 +119,7 @@ body.doe-mee main .cloud-text + .cloud-text {
    were sized to comfortably fit both paragraphs' actual copy. */
 body.doe-mee main .cloud:nth-child(2) {
   --duration: 17s; --distance: -6; --start: -9s; --shape: url('/sprites/cloud-soft.png');
+  --underline: 10%; /* cloud-soft.png is 22x10 px: bottom 1 row */
   width: 380px;
   aspect-ratio: 22 / 10;
   padding: 27% 20% 3% 13%; /* inscribed rect (top 4, right 4, bottom 0, left 2, of 22 cols) plus a safety margin —
@@ -136,6 +127,7 @@ body.doe-mee main .cloud:nth-child(2) {
 }
 body.doe-mee main .cloud:nth-child(3) {
   --duration: 13s; --distance: 5; --start: -3s; --shape: url('/sprites/cloud-round.png');
+  --underline: 9.1%; /* cloud-round.png is 20x11 px: bottom 1 row */
   width: 340px;
   aspect-ratio: 20 / 11;
   padding: 32% 14% 3%; /* inscribed rect (top 5, left 2, right 2, bottom 0, of 20 cols) plus a safety margin */
@@ -155,9 +147,22 @@ body.doe-mee main .cloud:nth-child(3) {
   body.doe-mee main {
     width: calc(100% - 72px); /* leaves a strip of sky on the right for the Nieuwe Kerk */
     margin-top: 16px; /* right below the menu */
+    justify-content: center; /* the heading and both clouds center within that width instead of hugging the left edge */
   }
   body.doe-mee main .cloud-text {
     font-size: 0.85rem;
+  }
+}
+@media (min-width: 700px) {
+  /* Lines the heading up with the top of the sidebar nav (pond.css: 52px padding-top + 2px border) instead of
+     catch.css's phone-oriented 24px, which sits well above the nav's own top edge at this width. The heading's
+     own top margin is dropped in favor of main's margin-top, which (unlike --px * 4) doesn't grow with the
+     viewport, so the two stay aligned at every desktop width instead of just the one they were tuned against. */
+  body.doe-mee main {
+    margin-top: 52px;
+  }
+  body.doe-mee main .cloud-title {
+    margin-top: 0;
   }
 }
 
