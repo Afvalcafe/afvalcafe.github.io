@@ -34,32 +34,30 @@ body.doe-mee main {
   box-shadow: none;
 }
 
-/* A stepped (right-angle) silhouette: flat bottom, bumpy top made of two "puffs", drawn with only
-   horizontal/vertical segments so it stays crisp at the pond's pixel scale (no diagonal antialiasing). */
+/* Same silhouette as the small drifting sky clouds (public/sprites/wolk.png): a single stepped dome — a
+   narrow nub on top, widening in stages, full width at the bottom — rather than a rounded box. Both the top
+   and the sides of the dome are staircased (bubbly), the bottom stays flat. Drawn with only horizontal/
+   vertical segments so it stays crisp at the pond's pixel scale (no diagonal antialiasing). */
 body.doe-mee main .cloud {
   --bump: calc(var(--px, 4px) * 6);
-  --puff: calc(var(--px, 4px) * 3); /* extra headroom above the text for the pixel puffs */
+  --puff: calc(var(--px, 4px) * 4); /* extra headroom above the text for the domed top */
   position: relative;
   isolation: isolate; /* keeps the ::before shadow's negative z-index contained to this cloud */
   box-sizing: border-box;
   max-width: 100%;
-  margin: calc(var(--px, 4px) * 3) 0 0;
+  margin: calc(var(--px, 4px) * 4) 0 0;
   padding: calc(var(--bump) + var(--puff)) var(--bump) var(--bump);
   border: 0;
   background: #fff;
-  /* The steps use fixed pixel heights (not %), so the puffs stay a constant size regardless of how tall the
-     box gets with more text — only the very top strip is notched, the rest of the box is a plain rectangle.
-     Two rounded tufts (each a multi-step staircase, like a pixel-art circle) instead of single-column spikes,
-     so the silhouette reads as a cloud rather than castle battlements. */
+  /* The dome's steps use fixed pixel heights (not %), so it stays a constant size regardless of how tall the
+     box gets with more text — only the top strip is domed, the rest of the box is a plain rectangle. */
   clip-path: polygon(
-    0% 100%, 0% calc(var(--px, 4px) * 7), 6.25% calc(var(--px, 4px) * 7), 6.25% calc(var(--px, 4px) * 6),
-    12.5% calc(var(--px, 4px) * 6), 12.5% calc(var(--px, 4px) * 4), 18.75% calc(var(--px, 4px) * 4), 18.75% calc(var(--px, 4px) * 3),
-    25% calc(var(--px, 4px) * 3), 25% calc(var(--px, 4px) * 1), 31.25% calc(var(--px, 4px) * 1), 31.25% 0,
-    43.75% 0, 43.75% calc(var(--px, 4px) * 1), 50% calc(var(--px, 4px) * 1), 50% calc(var(--px, 4px) * 2),
-    56.25% calc(var(--px, 4px) * 2), 56.25% calc(var(--px, 4px) * 1), 62.5% calc(var(--px, 4px) * 1), 62.5% 0,
-    75% 0, 75% calc(var(--px, 4px) * 1), 81.25% calc(var(--px, 4px) * 1), 81.25% calc(var(--px, 4px) * 3),
-    87.5% calc(var(--px, 4px) * 3), 87.5% calc(var(--px, 4px) * 4), 93.75% calc(var(--px, 4px) * 4), 93.75% calc(var(--px, 4px) * 6),
-    100% calc(var(--px, 4px) * 6), 100% 100%
+    0% 100%, 0% calc(var(--px, 4px) * 8), 6% calc(var(--px, 4px) * 8), 6% calc(var(--px, 4px) * 6),
+    16% calc(var(--px, 4px) * 6), 16% calc(var(--px, 4px) * 4), 28% calc(var(--px, 4px) * 4), 28% calc(var(--px, 4px) * 2),
+    40% calc(var(--px, 4px) * 2), 40% 0,
+    60% 0, 60% calc(var(--px, 4px) * 2),
+    72% calc(var(--px, 4px) * 2), 72% calc(var(--px, 4px) * 4), 84% calc(var(--px, 4px) * 4), 84% calc(var(--px, 4px) * 6),
+    94% calc(var(--px, 4px) * 6), 94% calc(var(--px, 4px) * 8), 100% calc(var(--px, 4px) * 8), 100% 100%
   );
   animation: float var(--duration, 14s) steps(6, end) var(--start, 0s) infinite alternate;
 }
