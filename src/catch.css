@@ -97,24 +97,11 @@ body.doe-mee main .cloud-text {
   flex-direction: column;
   justify-content: flex-end;
 }
-/* The line-wrap width lives on this inner element, not on .cloud-text itself: .cloud-text's own padding is a
-   percentage (it has to track the traced shape's inscribed rectangle — see the comment on .cloud above), so
-   if it also controlled the wrap width, more padding would narrow the text, wrap more lines, grow the box,
-   and need even more padding. Wrapping this inner span at a fixed width breaks that loop. */
+/* These two clouds are a fixed size (see nth-child(3)/(4) below) rather than sized to their text, so the
+   inner element just fills the available (already safe) content box — no separate wrap-width needed. */
 body.doe-mee main .cloud-text > * {
-  display: inline-block;
-  /* Matches the inscribed rectangle's own aspect ratio (about 2.67:1 for both paragraph shapes) at this
-     font-size/line-height, so the wrapped text block's shape lines up with the safe area instead of leaving
-     it mostly empty (too narrow a cap here) or overflowing it (too wide). A plain fixed length, not a
-     percentage: a percentage here (even inside min()) poisons the flex item's intrinsic-size calculation —
-     .cloud ends up sized by the flex container's available space instead of shrinking to its own content. */
-  max-width: 260px;
-}
-@media (max-width: 420px) {
-  /* Below this the fixed 260px cap itself would overflow the viewport, so switch to a viewport-relative cap. */
-  body.doe-mee main .cloud-text > * {
-    max-width: 78vw;
-  }
+  display: block;
+  width: 100%;
 }
 body.doe-mee main .cloud-text + .cloud-text {
   margin-left: auto;
@@ -125,24 +112,32 @@ body.doe-mee main .cloud-text + .cloud-text {
 body.doe-mee main .cloud:nth-child(1) { --duration: 15s; --distance: 5; --shape: url('/sprites/cloud-round.png'); }
 body.doe-mee main .cloud:nth-child(2) { --duration: 12s; --distance: -4; --start: -5s; --shape: url('/sprites/cloud-flat.png'); padding-left: 20%; }
 /* These two wrap to several lines, so unlike the logo/title their first line can start well within the
-   shape's own notch. Their padding and aspect-ratio are not guesses: for cloud-soft.png/cloud-round.png's
-   traced grid, a largest-rectangle-in-histogram search (the standard "largest inscribed rectangle in a
-   binary grid" algorithm) found the largest all-solid axis-aligned rectangle, and that rectangle's edges, in
-   grid cells, became these percentages. Padding-top/bottom are percentages of the box's own WIDTH (that's
-   what CSS padding always resolves against, top and bottom included) — dividing the rectangle's row offsets
-   by the grid WIDTH (not height) converts them correctly, given the box is held to the shape's native
-   aspect-ratio. That combination guarantees the text area is exactly the shape's own safe interior, at any
-   size — at the cost of some empty space when the text is shorter than the shape "expects". */
+   shape's own notch — rather than sizing the cloud to the text (fragile: CSS has no way to measure text and
+   feed it back into a shape's size), these two are a fixed size and the text is sized to fit inside instead.
+   Their padding and aspect-ratio are not guesses: for cloud-soft.png/cloud-round.png's traced grid, a
+   largest-rectangle-in-histogram search (the standard "largest inscribed rectangle in a binary grid"
+   algorithm) found the largest all-solid axis-aligned rectangle, and that rectangle's edges, in grid cells,
+   became these percentages. Padding-top/bottom are percentages of the box's own WIDTH (that's what CSS
+   padding always resolves against, top and bottom included) — dividing the rectangle's row offsets by the
+   grid WIDTH (not height) converts them correctly, given the box is held to the shape's native aspect-ratio.
+   That combination guarantees the text area is exactly the shape's own safe interior. The fixed widths below,
+   together with the font-size on .cloud-text, were sized to comfortably fit both paragraphs' actual copy. */
 body.doe-mee main .cloud:nth-child(3) {
   --duration: 17s; --distance: -6; --start: -9s; --shape: url('/sprites/cloud-soft.png');
+  width: 380px;
   aspect-ratio: 22 / 10;
   padding: 27% 20% 3% 13%; /* inscribed rect (top 4, right 4, bottom 0, left 2, of 22 cols) plus a safety margin —
     extra on top because a line's ascender height reaches a bit above the row the rectangle starts at */
 }
 body.doe-mee main .cloud:nth-child(4) {
   --duration: 13s; --distance: 5; --start: -3s; --shape: url('/sprites/cloud-round.png');
+  width: 340px;
   aspect-ratio: 20 / 11;
   padding: 32% 14% 3%; /* inscribed rect (top 5, left 2, right 2, bottom 0, of 20 cols) plus a safety margin */
+}
+@media (max-width: 699px) {
+  body.doe-mee main .cloud:nth-child(3) { width: 280px; }
+  body.doe-mee main .cloud:nth-child(4) { width: 250px; }
 }
 @keyframes float {
   to { transform: translateX(calc(var(--px, 4px) * var(--distance, 5))); }
