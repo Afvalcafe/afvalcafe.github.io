@@ -50,6 +50,14 @@ main {
   pointer-events: none; /* litter and birds underneath stay clickable */
 }
 main h1 { margin: 8px 0; font-family: "EB Garamond", Georgia, serif; font-weight: 500; font-size: 2.6rem; letter-spacing: 0.01em; line-height: 1.15; color: #22502b; } /* font resembles the one in the logo */
+
+/* About, Passport and Doe mee: plain page text (Comic Sans), including the headings — no separate heading font. */
+body.about main h1,
+body.passport main h1,
+body.doe-mee main h1 {
+  font-family: inherit;
+  font-weight: bold;
+}
 .brand { display: block; margin: 0 0 20px; }
 main h1.brand { margin: 0 0 20px; }
 .logo { display: block; margin: 0 auto; width: min(420px, 80%); height: auto; }
@@ -275,16 +283,25 @@ main a { pointer-events: auto; }
   text-decoration: underline;
 }
 .fact-link:hover .fact-more, .fact-link:focus-visible .fact-more { background: #16301a; color: #fff; text-decoration: none; }
-/* little tail pointing at the duck; --tail is set by pond.ts */
+/* Tail pointing at the duck, in the same blocky pixel style as the duck's own quack/hush speech bubbles
+   (drawBubble in pond.ts): a small stepped pixel shape instead of a smooth triangle.
+   --tail is set by pond.ts; --px (one pond pixel) by pixel.ts. */
 .fact::after {
   content: "";
   position: absolute;
   top: 100%;
-  left: calc(var(--tail, 50%) - 7px);
-  width: 0;
-  height: 0;
-  border: 7px solid transparent;
-  border-top: 22px solid #16301a; /* long tail, so it's clear which duck is talking */
+  left: calc(var(--tail, 50%) - var(--px, 4px));
+  width: var(--px, 4px);
+  height: var(--px, 4px);
+  background: #fff;
+  box-shadow:
+    var(--px, 4px) 0 #fff,
+    calc(var(--px, 4px) * -1) var(--px, 4px) #16301a,
+    0 var(--px, 4px) #fff,
+    var(--px, 4px) var(--px, 4px) #fff,
+    calc(var(--px, 4px) * 2) var(--px, 4px) #16301a,
+    0 calc(var(--px, 4px) * 2) #16301a,
+    var(--px, 4px) calc(var(--px, 4px) * 2) #16301a;
 }
 .fact-out { opacity: 0; transition: opacity 0.3s; }
 @keyframes fact-in {

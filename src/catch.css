@@ -14,156 +14,75 @@ body {
   touch-action: pan-y;
 }
 
-/* The text sits in separate clouds instead of one white panel: the skyline and the falling litter stay visible.
-   Below the clouds there's still a screen's worth of sky and park: scroll to see the game properly (bottom
-   margin from pond.css). */
+/* The text card is the same white panel as on the other pages (pond.css), but sits a bit to the left and
+   high on screen, so the Delft skyline (with the Nieuwe Kerk, see churchSpot() in catch.ts) stays visible
+   to its right. Falling litter is drawn on #game-canvas-foreground (above the card, see catch.ts), not on
+   #game-canvas, so you see it fall over the card instead of disappearing behind it. Below the card there's
+   still a screen's worth of sky and park: scroll to see the game properly (bottom margin from pond.css). */
 body.doe-mee {
-  overflow-x: clip; /* floating clouds must never cause a horizontal scrollbar */
+  overflow-x: clip;
+}
+
+#game-canvas-foreground {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2; /* above main (z-index 1) */
+  display: block;
+  image-rendering: pixelated;
+  pointer-events: none;
 }
 
 body.doe-mee main {
-  margin-top: 24px; /* high on screen, leaving room for the game */
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: calc(var(--px, 4px) * 2);
-  padding: 0;
-  background: none;
-  border: 0;
-  box-shadow: none;
+  margin: 24px 0 24px 16px; /* high and to the left, leaving room on the right for the church */
+  width: min(420px, calc(100% - 48px));
 }
 
-/* Each cloud is traced (not hand-drawn) from an actual pixel-art cloud reference — public/sprites/cloud-*.png,
-   one small transparent-alpha bitmap per shape — and used as a CSS mask stretched to the element's own box
-   (mask-size: 100% 100%). That bulges the real cloud outline on every side to fit however big the text makes
-   the box, instead of capping a plain rectangle with a shaped strip on top. The two paragraph clouds wrap to
-   several lines and need the exact fit treatment — see the nth-child(2)/nth-child(3) comment below. The
-   heading isn't one of these: see .cloud-title further down, where the letters themselves are the cloud. */
-body.doe-mee main .cloud {
-  --shape: url('/sprites/cloud-round.png');
-  --underline: 10%; /* bottom band tinted like the background clouds' shaded underside (public/sprites/wolk*.png) */
-  position: relative;
-  box-sizing: border-box;
-  width: fit-content; /* shrink to the content's own size — main's own fixed width (pond.css) otherwise wins */
-  max-width: 100%;
-  margin: calc(var(--px, 4px) * 4) 0 0;
-  padding: calc(var(--px, 4px) * 13) 24% calc(var(--px, 4px) * 9);
-  border: 0;
-  background: linear-gradient(to bottom,
-    #fff 0%, #fff calc(100% - var(--underline)),
-    #dcebf7 calc(100% - var(--underline)), #dcebf7 100%);
-  image-rendering: pixelated;
-  mask-image: var(--shape);
-  -webkit-mask-image: var(--shape);
-  mask-repeat: no-repeat;
-  -webkit-mask-repeat: no-repeat;
-  mask-size: 100% 100%;
-  -webkit-mask-size: 100% 100%;
-  /* drop-shadow (not a ::before pseudo) so the shadow paints behind the masked shape: a pseudo-element with
-     z-index: -1 still paints above its stacking-context parent's own background per the CSS stacking order,
-     which washed the shadow color over almost the whole cloud instead of just peeking out past its edge. */
-  filter: drop-shadow(0 calc(var(--px, 4px) * 1.5) 0 rgba(30, 40, 30, 0.15));
-  animation: float var(--duration, 14s) steps(6, end) var(--start, 0s) infinite alternate;
-}
-
-/* The heading itself is drawn as pixel-art bubble lettering — a thick pixel-stepped ink outline plus a
-   further, lighter "puff" ring around that (the same idea as the traced cloud shapes: a solid fill, a dark
-   contour, a soft halo) — instead of plain text sitting inside a cloud-shaped box. Press Start 2P is already
-   the site's pixel font (nav, buttons); its blocky glyphs read well with a stepped outline like this. */
-body.doe-mee main .cloud-title {
-  margin: calc(var(--px, 4px) * 4) 0 0;
-  font-family: "Press Start 2P", monospace;
-  font-size: clamp(1.4rem, 4vw + 0.8rem, 2.6rem); /* shrinks to fit narrow screens instead of wrapping/overflowing */
-  line-height: 1.3;
-  color: #fff;
-  text-shadow:
-    -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink), 2px 2px 0 var(--ink),
-    -2px 0 0 var(--ink), 2px 0 0 var(--ink), 0 -2px 0 var(--ink), 0 2px 0 var(--ink),
-    0 6px 0 #dce8f7, 6px 0 0 #dce8f7, 0 -6px 0 #dce8f7, -6px 0 0 #dce8f7,
-    4px 4px 0 #dce8f7, -4px 4px 0 #dce8f7, 4px -4px 0 #dce8f7, -4px -4px 0 #dce8f7,
-    4px 8px 0 rgba(22, 48, 26, 0.25);
-  animation: float 15s steps(6, end) infinite alternate;
-}
-body.doe-mee main .cloud-text {
-  max-width: 100%;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  /* The text sits at the bottom of the cloud, not the top: every traced shape's bottom rows are close to full
-     width (that's what makes it read as a cloud sitting on a flat base), so anchoring there keeps the text
-     clear of the notches near the top regardless of how many lines it wraps to. */
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-/* These two clouds are a fixed size (see nth-child(3)/(4) below) rather than sized to their text, so the
-   inner element just fills the available (already safe) content box — no separate wrap-width needed. */
-body.doe-mee main .cloud-text > * {
-  display: block;
-  width: 100%;
-}
-body.doe-mee main .cloud-text + .cloud-text {
-  margin-left: auto;
-}
-
-/* Each paragraph cloud floats in steps of one pond pixel, at its own pace. They wrap to several lines, so
-   unlike the heading their first line can start well within the shape's own notch — rather than sizing the
-   cloud to the text (fragile: CSS has no way to measure text and feed it back into a shape's size), these
-   two are a fixed size and the text is sized to fit inside instead. Their padding and aspect-ratio are not
-   guesses: for cloud-soft.png/cloud-round.png's traced grid, a largest-rectangle-in-histogram search (the
-   standard "largest inscribed rectangle in a binary grid" algorithm) found the largest all-solid axis-aligned
-   rectangle, and that rectangle's edges, in grid cells, became these percentages. Padding-top/bottom are
-   percentages of the box's own WIDTH (that's what CSS padding always resolves against, top and bottom
-   included) — dividing the rectangle's row offsets by the grid WIDTH (not height) converts them correctly,
-   given the box is held to the shape's native aspect-ratio. That combination guarantees the text area is
-   exactly the shape's own safe interior. The fixed widths below, together with the font-size on .cloud-text,
-   were sized to comfortably fit both paragraphs' actual copy. */
-body.doe-mee main .cloud:nth-child(2) {
-  --duration: 17s; --distance: -6; --start: -9s; --shape: url('/sprites/cloud-soft.png');
-  --underline: 10%; /* cloud-soft.png is 22x10 px: bottom 1 row */
-  width: 380px;
-  aspect-ratio: 22 / 10;
-  padding: 27% 20% 3% 13%; /* inscribed rect (top 4, right 4, bottom 0, left 2, of 22 cols) plus a safety margin —
-    extra on top because a line's ascender height reaches a bit above the row the rectangle starts at */
-}
-body.doe-mee main .cloud:nth-child(3) {
-  --duration: 13s; --distance: 5; --start: -3s; --shape: url('/sprites/cloud-round.png');
-  --underline: 9.1%; /* cloud-round.png is 20x11 px: bottom 1 row */
-  width: 340px;
-  aspect-ratio: 20 / 11;
-  padding: 32% 14% 3%; /* inscribed rect (top 5, left 2, right 2, bottom 0, of 20 cols) plus a safety margin */
-}
 @media (max-width: 699px) {
-  body.doe-mee main .cloud:nth-child(2) { width: 280px; }
-  body.doe-mee main .cloud:nth-child(3) { width: 250px; }
+  body.doe-mee main {
+    width: min(220px, 58%); /* narrow: leaves plenty of background (and the church) visible on the phone */
+    margin: 16px 0 24px 12px;
+    padding: 14px 12px 10px;
+  }
+  body.doe-mee main h1 {
+    font-size: 1.5rem;
+  }
+  body.doe-mee main p {
+    font-size: 0.85rem;
+    margin: 14px 0;
+  }
 }
-@keyframes float {
-  to { transform: translateX(calc(var(--px, 4px) * var(--distance, 5))); }
+
+/* From tablet width up the menu is a fixed column on the left (see pond.css): the card must always clear it. */
+@media (min-width: 700px) {
+  body.doe-mee main {
+    margin-left: 216px;
+  }
+}
+
+/* Popup right above the bag when nature falls in: shown briefly, then gone. left/top are set per occurrence. */
+.nature-popup {
+  position: fixed;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  padding: 8px 12px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: #af3029;
+  background: #fff;
+  border: 3px solid #16301a;
+  box-shadow: 0 4px 0 #16301a;
+  pointer-events: none;
+  animation: fact-in 0.15s ease-out;
+}
+.nature-popup-out {
+  opacity: 0;
+  transition: opacity 0.35s;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cloud, .cloud-title { animation: none; }
-}
-
-@media (max-width: 699px) {
-  body.doe-mee main {
-    width: calc(100% - 72px); /* leaves a strip of sky on the right for the Nieuwe Kerk */
-    margin-top: 16px; /* right below the menu */
-    justify-content: center; /* the heading and both clouds center within that width instead of hugging the left edge */
-  }
-  body.doe-mee main .cloud-text {
-    font-size: 0.85rem;
-  }
-}
-@media (min-width: 700px) {
-  /* Lines the heading up with the top of the sidebar nav (pond.css: 52px padding-top + 2px border) instead of
-     catch.css's phone-oriented 24px, which sits well above the nav's own top edge at this width. The heading's
-     own top margin is dropped in favor of main's margin-top, which (unlike --px * 4) doesn't grow with the
-     viewport, so the two stay aligned at every desktop width instead of just the one they were tuned against. */
-  body.doe-mee main {
-    margin-top: 52px;
-  }
-  body.doe-mee main .cloud-title {
-    margin-top: 0;
-  }
+  .nature-popup { animation: none; }
 }
 
 /* Two counters bottom-left: what you caught and what the others picked up. */

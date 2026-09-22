@@ -17,6 +17,8 @@
 </head>
 <body class="sub doe-mee">
   <canvas id="game-canvas" aria-hidden="true"></canvas>
+  <!-- Above the text card: only the falling litter/nature is drawn here (src/catch.ts), so it stays visible falling over the card. -->
+  <canvas id="game-canvas-foreground" aria-hidden="true"></canvas>
 
   <nav class="pond-menu" aria-label="Menu">
     <a href="index.html" class="icon-home" aria-label="Home">
@@ -30,12 +32,11 @@
     <a href="bingo.html">Paspoort</a>
   </nav>
 
-  <!-- The heading's letters are drawn as pixel-art bubble/cloud lettering (src/catch.css), not text sitting
-       inside a cloud shape. The two paragraphs still sit in traced cloud shapes; all three float a little. -->
   <main>
-    <h1 class="cloud-title">Doe mee!</h1>
-    <p class="cloud cloud-text"><span></span></p>
-    <p class="cloud cloud-text"><em></em></p>
+    <a class="brand" href="index.html"><img class="logo" src="images/logo.svg" alt="Afval &amp; Café – terug naar home"></a>
+    <h1>Doe mee!</h1>
+    <p>Je hoeft niets mee te nemen: wij zorgen voor prikkers en zakken. Kom gewoon langs en drink daarna gezellig mee.</p>
+    <p><em>Stuur een mailtje naar afvalcafe@pm.me, dan nemen wij zsm contact met je op om kennis te maken!</em></p>
   </main>
 
   <div class="counter">Jij: <span id="score-you">0</span><br>Anderen: <span id="score-others">0</span></div>

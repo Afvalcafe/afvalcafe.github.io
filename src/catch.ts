@@ -1,7 +1,9 @@
 // Background of "Doe mee": a park where litter and nature slowly fall down. Drag or move the litter bag
-// to catch it. Whatever you miss stays on the ground and slowly forms a pile. When litter is lying around,
-// people (up to three at a time) with a grabber and their own bag come by to pick it up. The game is never
-// finished: it's decor behind the text, with two counters bottom-left: your score and the others' score.
+// to catch it: litter scores a point, nature in the bag costs one instead (with a popup). Whatever you
+// miss stays on the ground and slowly forms a pile; nature on the pile decays after a while. Four people
+// sit at a table having coffee from the start; when litter is lying around they pick it up one at a time
+// with a grabber and their own bag, then sit back down. The game is never finished: it's decor behind the
+// text, with two counters bottom-left: your score and the others' score.
 
 import './catch.css';
 import { pondScale } from './pixel';
@@ -9,7 +11,7 @@ import { buildBackground, loadBackground, drawBackground } from './background';
 import { loadBird, placeBird, drawBird, updateBird } from './bird';
 
 const LITTER = ['batterij', 'schoen', 'fles', 'beker', 'chips', 'sigaret'];
-const NATURE = ['blad', 'blad2'];
+const NATURE = ['blad', 'blad2', 'tak', 'dennenappel'];
 
 const BAG_SPEED = 2400; // max bag movement in pixels per second
 const SINK = 2; // how many pixels the bag sinks into the pile it stands on
@@ -24,15 +26,14 @@ const NATURE_CHANCE = 0.2;
 const PILE_MAX = 0.4; // the pile grows to this fraction of the screen; nothing falls after that
 const SCORE_KEY_YOU = 'litter-collected'; // same counter as in the pond, so it survives page navigation
 const SCORE_KEY_OTHERS = 'catch-others';
-const PEOPLE_MAX = 2; // two people, who sit together at the coffee table until enough litter piles up
-const STAND_UP_THRESHOLD = 2; // only once there are more than this many unclaimed lying items do they stand up
+const PEOPLE_MAX = 4; // four people; they're there from the start, already having coffee together
 const PERSON_SPEED = 14; // pond pixels per second
 const PERSON_DISTANCE = 9; // how far from the litter someone stops while picking it up
 const LIFE_MIN = 8; // nature decays: after this many seconds (between min and max) it fades and disappears
 const LIFE_MAX = 14;
 const FADE_DURATION = 1.5; // how long the fade takes
-const TABLE_ZONE = 17; // half the width of the zone around the coffee table where no litter lands
-const TABLE_SPOTS = [-14, 14]; // where the two people stand during their break, relative to the table's center
+const TABLE_ZONE = 24; // half the width of the zone around the table where no litter lands
+const TABLE_SPOTS = [-24, -9, 9, 24]; // four chairs around the table, relative to its center
 const PICKUP_DURATION = 1.9; // seconds per item
 const ROLL = 3; // if an item lands this many pixels higher than the spot next to it, it rolls that way
 
@@ -73,6 +74,10 @@ type Person = {
 
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
+// Falling litter is drawn on this separate, transparent canvas: it sits above the text card (see catch.css),
+// so you see it fall over the card instead of it disappearing behind it.
+const foregroundCanvas = document.getElementById('game-canvas-foreground') as HTMLCanvasElement;
+const foregroundCtx = foregroundCanvas.getContext('2d')!;
 const youEl = document.getElementById('score-you');
 const othersEl = document.getElementById('score-others');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -115,6 +120,26 @@ function addScore(who: 'you' | 'others') {
   }
 }
 renderScore();
+
+// Nature in the bag: a point off, with a little popup right above the bag.
+function losePoint(x: number, y: number) {
+  score.you = Math.max(0, score.you - 1);
+  renderScore();
+  try {
+    sessionStorage.setItem(SCORE_KEY_YOU, String(score.you));
+  } catch {
+    /* see above */
+  }
+  document.querySelector('.nature-popup')?.remove();
+  const el = document.createElement('div');
+  el.className = 'nature-popup';
+  el.textContent = 'Natuur in de zak! −1';
+  el.style.left = `${Math.round(x * scale)}px`;
+  el.style.top = `${Math.round((y - 6) * scale)}px`;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('nature-popup-out'), 900);
+  setTimeout(() => el.remove(), 1300);
+}
 
 // Per column of a sprite: the topmost and bottommost non-transparent pixel (-1 = empty column).
 const profiles = new Map<HTMLImageElement, { top: number[]; bottom: number[] }>();
@@ -230,15 +255,17 @@ function bagRestY() {
 // The Nieuwe Kerk stands next to the text cloud (to its right) if there's room, otherwise against the right
 // edge, so it never disappears behind the text.
 function churchSpot() {
-  // Right edge of the clouds (or of all the text, otherwise).
-  const parts = [...document.querySelectorAll('.cloud, main')];
-  if (parts.length === 0) return undefined;
-  const right = Math.max(...parts.map((d) => d.getBoundingClientRect().right)) / scale;
+  const text = document.querySelector('main');
+  if (!text) return undefined;
+  const right = text.getBoundingClientRect().right / scale;
   const free = W - right;
   return Math.round(free >= 70 ? right + free / 2 : W - 12);
 }
 
 function resize() {
+  // The viewport sometimes reports 0x0 for a moment right after load (not laid out yet); skip building
+  // anything then and wait for a real resize (see below), instead of crashing the canvases below.
+  if (innerWidth <= 0 || innerHeight <= 0) return;
   scale = pondScale().scale;
   W = Math.ceil(innerWidth / scale);
   H = Math.ceil(innerHeight / scale);
@@ -247,6 +274,11 @@ function resize() {
   canvas.style.width = `${W * scale}px`;
   canvas.style.height = `${H * scale}px`;
   ctx.imageSmoothingEnabled = false;
+  foregroundCanvas.width = W;
+  foregroundCanvas.height = H;
+  foregroundCanvas.style.width = `${W * scale}px`;
+  foregroundCanvas.style.height = `${H * scale}px`;
+  foregroundCtx.imageSmoothingEnabled = false;
   buildBackground(W, H, churchSpot());
   placeBird(W, H);
   buildPile();
@@ -299,9 +331,9 @@ function update(dt: number) {
   const bagY = Math.round(bag.y);
   for (const item of fallingItems) {
     item.y += item.vy * dt;
-    // If falling litter even just touches the bag, it's caught. Nature and litter already lying don't count.
+    // If falling litter or nature even just touches the bag, it's caught. Litter scores a point; nature in
+    // the bag costs one instead (with a popup). Litter already lying on the ground doesn't count.
     if (
-      !item.nature &&
       item.x + item.img.width > bag.x &&
       item.x < bag.x + bagImg.width &&
       item.y + item.img.height > bagY + CATCH_MARGIN &&
@@ -309,7 +341,8 @@ function update(dt: number) {
     ) {
       item.gone = true;
       bag.jolt = reducedMotion ? 0 : 0.12;
-      addScore('you');
+      if (item.nature) losePoint(bag.x + bagImg.width / 2, bag.y);
+      else addScore('you');
       continue;
     }
     // Swaying leaves land wherever they happen to be hanging at that moment.
@@ -339,11 +372,14 @@ function draw() {
   const now = performance.now() / 1000;
   drawBackground(ctx, W, now, reducedMotion);
   drawBird(ctx, now);
-  ctx.drawImage(pile, 0, 0);
-  for (const item of fallingItems) ctx.drawImage(item.img, Math.round(item.x + swayOffset(item)), Math.round(item.y));
   drawTable(now);
+  ctx.drawImage(pile, 0, 0);
   for (const p of people) drawPerson(p, now);
   ctx.drawImage(bagImg, Math.round(bag.x), Math.round(bag.y) + (bag.jolt > 0 ? 1 : 0));
+
+  // Falling litter and nature on the separate foreground layer, above the text card.
+  foregroundCtx.clearRect(0, 0, W, H);
+  for (const item of fallingItems) foregroundCtx.drawImage(item.img, Math.round(item.x + swayOffset(item)), Math.round(item.y));
 }
 
 
@@ -363,15 +399,16 @@ const groundY = (x: number) => {
 };
 const smoothstep = (u: number) => u * u * (3 - 2 * u);
 const mix = (a: number, b: number, u: number) => a + (b - a) * u;
-// Only once more than STAND_UP_THRESHOLD items are lying around (unclaimed) do people stand up.
-const unclaimedLitter = () => lyingItems.filter((it) => !it.nature && !it.claim).length > STAND_UP_THRESHOLD;
+const unclaimedLitter = () => lyingItems.some((it) => !it.nature && !it.claim);
 
 function makePerson(spot: number): Person {
   const x = table.x + TABLE_SPOTS[spot];
   return {
     spot,
     standing: true,
-    coffee: Math.random() * 5,
+    // Already mid-sip when the page loads (see the sip calculation in updatePerson), each timed slightly
+    // differently, instead of only having their first coffee after a while.
+    coffee: 4.6 + spot * 0.3 + Math.random() * 0.3,
     x,
     y: groundY(x),
     dir: TABLE_SPOTS[spot] < 0 ? 1 : -1,
@@ -515,27 +552,48 @@ function pickUp(p: Person, dt: number) {
   }
 }
 
-// Coffee table on the ground, bottom right, with a thermos and two mugs.
+// A little wisp of steam above a mug: a few floating pixels that gently sway and fade out towards the top,
+// instead of a single dot. The bottom pixel (i = 0) stays put right above the mug; only the ones above it
+// wave, with more sway the higher they get. `phase` gives each mug its own rhythm.
+function drawSteam(r: (x: number, y: number, w: number, h: number, c: string) => void, cx: number, topY: number, now: number, phase: number) {
+  for (let i = 0; i < 4; i++) {
+    const dx = i === 0 ? 0 : Math.round(Math.sin(now * 2.2 + phase + i * 1.1) * (0.7 + i * 0.3));
+    r(cx + dx, topY - i, 1, 1, `rgba(255, 255, 255, ${(0.5 - i * 0.11).toFixed(2)})`);
+  }
+}
+
+const CHAIR_COLOR = '#7a4f28';
+function drawChair(x: number, facingTable: boolean, r: (x: number, y: number, w: number, h: number, c: string) => void) {
+  const d = facingTable ? 1 : -1; // the backrest sits on the side away from the table
+  r(x - 4, -9, 8, 2, '#8a5a30'); // seat
+  r(x - 4, -7, 1, 7, CHAIR_COLOR);
+  r(x + 3, -7, 1, 7, CHAIR_COLOR); // legs
+  r(x - d * 4, -16, 1, 7, CHAIR_COLOR); // backrest
+  r(x - d * 4, -16, d * 2, 1, CHAIR_COLOR);
+}
+
+// Round table on the ground, bottom right, with four chairs and a mug for everyone: bigger than the people
+// themselves, so it reads clearly.
 function drawTable(now: number) {
   const r = (x: number, y: number, w: number, h: number, c: string) => {
     ctx.fillStyle = c;
     ctx.fillRect(Math.round(table.x) + x, H + y, w, h);
   };
-  r(-11, -8, 2, 8, '#6b4423');
-  r(9, -8, 2, 8, '#6b4423');
-  r(-13, -10, 26, 2, '#b98550');
-  r(-13, -8, 26, 1, '#7a4f28');
-  r(-10, -17, 4, 7, '#c0392b'); // thermos
-  r(-10, -18, 4, 1, '#8a97a3');
-  r(-9, -14, 2, 1, '#f4f4f4');
-  r(0, -13, 3, 3, '#f4f4f4'); // mugs
-  r(0, -13, 3, 1, '#5a3a22');
-  r(5, -13, 3, 3, '#f4f4f4');
-  r(5, -13, 3, 1, '#5a3a22');
+  for (const spot of TABLE_SPOTS) drawChair(spot, spot < 0, r);
+  r(-3, -19, 6, 11, '#6b4423'); // table leg
+  r(-9, -8, 18, 2, 'rgba(22, 48, 26, 0.25)'); // shadow on the grass
+  r(-17, -22, 34, 4, '#c98a45'); // round tabletop
+  r(-14, -24, 28, 2, '#d9a35f');
+  r(-19, -20, 38, 2, '#c98a45');
+  r(-17, -18, 34, 1, '#a8712f');
+  for (const cx of [-12, -4, 4, 12]) {
+    r(cx - 1, -21, 3, 1, '#e8e8e8'); // saucer
+    r(cx, -23, 3, 3, '#f4f4f4'); // mug
+    r(cx, -23, 3, 1, '#5a3a22'); // coffee
+  }
   if (!reducedMotion) {
-    const k = Math.floor(now * 2) % 2; // steam
-    r(1, -15 - k, 1, 1, '#ffffff');
-    r(6, -16 + k, 1, 1, '#ffffff');
+    drawSteam(r, -11, -24, now, 0);
+    drawSteam(r, 5, -24, now, 2.4);
   }
 }
 
@@ -598,7 +656,7 @@ function drawPerson(p: Person, now: number) {
     // coffee cup; the grabber is briefly out of frame
     r(hand.x + 1, hand.y - 2, 3, 3, '#f4f4f4');
     r(hand.x + 1, hand.y - 2, 3, 1, '#5a3a22');
-    if (!reducedMotion && Math.floor(now * 3) % 2) r(hand.x + 2, hand.y - 4, 1, 1, '#ffffff');
+    if (!reducedMotion) drawSteam(r, hand.x + 2, hand.y - 3, now, p.coffee);
     return;
   }
 
@@ -619,8 +677,11 @@ let previous = 0;
 function loop(now: number) {
   const dt = Math.min(0.05, (now - previous) / 1000); // no jump after a hidden tab
   previous = now;
-  update(dt);
-  draw();
+  if (pile) {
+    // only draw once resize() has succeeded at least once (see there: it does nothing at 0x0)
+    update(dt);
+    draw();
+  }
   requestAnimationFrame(loop);
 }
 
@@ -628,9 +689,11 @@ async function init() {
   [bagImg, litterSprites, natureSprites] = await Promise.all([loadSprite('vuilniszak'), Promise.all(LITTER.map(loadSprite)), Promise.all(NATURE.map(loadSprite))]);
   await loadBackground(loadSprite);
   loadBird(await loadSprite('vogel'));
-  resize();
+  // Listen first, build second: if the first build fails (see resize above), a later resize (or the font
+  // load event) still recovers, instead of getting stuck.
   addEventListener('resize', resize);
   void document.fonts.ready.then(resize); // the text gets taller or shorter once the font is in: the church must still stand next to it
+  resize();
   bag.x = bag.target = (W - bagImg.width) / 2;
   requestAnimationFrame((now) => {
     previous = now;
