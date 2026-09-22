@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://afvalcafe.github.io/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://afvalcafe.github.io/over-ons.html</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://afvalcafe.github.io/agenda.html</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://afvalcafe.github.io/doe-mee.html</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://afvalcafe.github.io/contact.html</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://afvalcafe.github.io/galerij.html</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://afvalcafe.github.io/bronnen.html</loc>
+    <priority>0.3</priority>
+  </url>
+</urlset>
