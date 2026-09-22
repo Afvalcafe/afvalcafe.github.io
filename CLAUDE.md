@@ -1,6 +1,6 @@
 ﻿# Afval & Café website
 
-Static site for Afval & Café (monthly litter-picking in Delft, followed by drinks; ages 20-30), published at afvalcafe.github.io via GitHub Pages.
+Static site for Afval & Café (monthly litter-picking in Delft, followed by drinks; ages 20-35), published at afvalcafe.github.io via GitHub Pages.
 
 ## Git
 - No Claude attribution in commits or PRs: no `Co-Authored-By` lines, no "Generated with Claude Code".
