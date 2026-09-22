@@ -18,9 +18,13 @@ const KICK = 3; // sterkte van de willekeurige duwtjes
 const MAX_SPEED = 5; // pond-pixels per seconde
 const DIP = [1, 2, 2, 1, 0, -1, 0]; // zakt bij een klik in hele pond-pixels
 const DIP_STEP = 0.06; // seconden per stap
+const DRAG_CLICK_THRESHOLD = 6; // CSS pixels of movement before it counts as a drag instead of a click
 
 export interface Rect { x0: number; y0: number; x1: number; y1: number }
-interface Raft { el: HTMLElement; x: number; y: number; hx: number; hy: number; vx: number; vy: number; dip: number; active: boolean }
+interface Raft {
+  el: HTMLElement; x: number; y: number; hx: number; hy: number; vx: number; vy: number; dip: number; active: boolean;
+  dragging: boolean; dragOffX: number; dragOffY: number; dragMoved: number; suppressClick: boolean;
+}
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -37,12 +41,71 @@ function overlap(ax: number, ay: number, b: Rect, pad: number) {
 export function createRafts() {
   const rafts: Raft[] = [...document.querySelectorAll<HTMLElement>('.raft')].map((el) => ({
     el, x: 0, y: 0, hx: 0, hy: 0, vx: 0, vy: 0, dip: -1, active: false,
+    dragging: false, dragOffX: 0, dragOffY: 0, dragMoved: 0, suppressClick: false,
   }));
   // gallery.ts reports a click; the raft dips down briefly
   for (const r of rafts) r.el.addEventListener('plons', () => (r.dip = 0));
 
   const active = () => rafts.filter((r) => r.active);
   const rectOf = (r: Raft): Rect => ({ x0: r.x, y0: r.y, x1: r.x + RAFT_W, y1: r.y + RAFT_H });
+
+  // Dragging: press and hold a raft (the log or the photo) and drag it into another one to shove it aside.
+  // scale/cam are kept in sync from update() below, so pointer events (viewport pixels) can be converted to
+  // pond coordinates at any time, including outside the render loop.
+  let dragScale = 1;
+  let dragCam = 0;
+  const toPond = (e: PointerEvent) => ({ x: e.clientX / dragScale, y: e.clientY / dragScale + dragCam });
+  let lastMoveT = 0;
+
+  for (const r of rafts) {
+    r.el.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return; // alleen de primaire knop of een vinger
+      const p = toPond(e);
+      r.dragging = true;
+      r.dragOffX = p.x - r.x;
+      r.dragOffY = p.y - r.y;
+      r.dragMoved = 0;
+      r.vx = r.vy = 0;
+      lastMoveT = performance.now();
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      e.preventDefault(); // geen tekst selecteren of scrollen tijdens het slepen
+    });
+    r.el.addEventListener('pointermove', (e) => {
+      if (!r.dragging) return;
+      const p = toPond(e);
+      const nx = p.x - r.dragOffX;
+      const ny = p.y - r.dragOffY;
+      const now = performance.now();
+      const dt = Math.max(0.001, (now - lastMoveT) / 1000);
+      lastMoveT = now;
+      // snelheid in pond-pixels per seconde, zodat loslaten een natuurlijke gooi geeft (zie update())
+      r.vx = clamp((nx - r.x) / dt, -MAX_SPEED * 6, MAX_SPEED * 6);
+      r.vy = clamp((ny - r.y) / dt, -MAX_SPEED * 6, MAX_SPEED * 6);
+      r.dragMoved += Math.hypot(e.movementX, e.movementY);
+      r.x = nx;
+      r.y = ny;
+    });
+    const endDrag = (e: PointerEvent) => {
+      if (!r.dragging) return;
+      r.dragging = false;
+      if (r.dragMoved > DRAG_CLICK_THRESHOLD) r.suppressClick = true;
+      (e.currentTarget as Element).releasePointerCapture(e.pointerId);
+    };
+    r.el.addEventListener('pointerup', endDrag);
+    r.el.addEventListener('pointercancel', endDrag);
+    // Een sleep mag niet ook de foto openen; de klik komt vlak na pointerup.
+    r.el.querySelector('button')?.addEventListener(
+      'click',
+      (e) => {
+        if (r.suppressClick) {
+          r.suppressClick = false;
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      },
+      true,
+    );
+  }
 
   // Places the rafts at their home spot in a grid next to or below the menu, and returns the height of the
   // pond: at least the screen, but taller if the grid needs more rows.
@@ -102,9 +165,13 @@ export function createRafts() {
   // Each raft does a calm, undirected walk: no preferred direction, just small nudges.
   function update(dt: number, W: number, H: number, fixed: Rect[], scale: number, still: boolean, cam: number, viewH: number) {
     dt = Math.max(0, dt); // het eerste beeld kan een iets negatieve tijdstap geven
+    dragScale = scale;
+    dragCam = cam;
     const list = active();
     for (const r of list) {
-      if (!still) {
+      if (r.dragging) {
+        // positie komt al van de pointer (zie pointermove hierboven); alleen de rand en botsingen hieronder gelden nog
+      } else if (!still) {
         r.vx += noise() * KICK * Math.sqrt(dt) - (DAMPING * r.vx + PULL * (r.x - r.hx)) * dt;
         r.vy += noise() * KICK * Math.sqrt(dt) - (DAMPING * r.vy + PULL * (r.y - r.hy)) * dt;
         const s = Math.hypot(r.vx, r.vy);

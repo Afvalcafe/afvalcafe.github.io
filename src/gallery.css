@@ -29,7 +29,13 @@
   width: calc(54 * var(--px));
   height: calc(48 * var(--px));
   will-change: transform;
+  /* the whole raft (log included, not just the photo button) can be pressed and dragged (src/rafts.ts),
+     to push it into other rafts; touch-action: none stops the page from scrolling while dragging */
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
 }
+.raft:active { cursor: grabbing; }
 .raft.floating { display: block; }
 .raft button {
   position: absolute;
