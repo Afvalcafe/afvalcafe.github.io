@@ -534,6 +534,8 @@ async function start(canvas: HTMLCanvasElement) {
       for (const d of ducks) push(d, litter[i], bodyW(d.img) + 6, bodyH(d.img) + 6, 0); // alleen het afval schuift
       pushOut(litter[i], litter[i].img.width / 2, litter[i].img.height / 2);
     }
+    // Waterlelies liggen los op het water: een langsdrijvend vlot (galerij) duwt ze net als afval opzij.
+    for (const p of pads) pushOut(p, p.img.width / 2, p.img.height / 2);
   }
 
   function updateLitter(l: Litter, dt: number) {
