@@ -318,6 +318,12 @@ function buildFloor() {
       g.fillRect(x, y, 1, 1);
     }
   }
+  // Flowers, the same ones (and just as common) as in the Doe mee game; the belt is drawn over them.
+  for (let i = 0; i < (W * H) / 500; i++) {
+    const r = Math.random();
+    const img = sprites.get(FLOWERS[FLOWER_ODDS.findIndex((k) => r <= k)]);
+    if (img) g.drawImage(img, Math.floor(Math.random() * (W - img.width)), Math.floor(Math.random() * (H - img.height)));
+  }
   const saved = ctx;
   ctx = g;
   drawBeltFrame();
@@ -355,6 +361,7 @@ function resize() {
   ctx.imageSmoothingEnabled = false;
 
   buildFloor();
+  placePickers();
   for (const item of items) {
     item.s = Math.min(item.s, length - 1);
     if (item.state === 'flying') item.state = 'belt';
@@ -380,11 +387,15 @@ function nextMaterial(): Material {
   return lastMaterial;
 }
 
-function spawnItem(s = 0) {
+function makeItem(s = 0): Item {
   const material = nextMaterial();
   const battery = material === 'electronics' && Math.random() < BATTERY_CHANCE;
   const kind = pickRandom(KINDS.filter((k) => k.material === material && !!k.battery === battery));
-  items.push({ img: sprites.get(kind.sprite)!, material: kind.material, battery, s, state: 'belt', cooldown: 0 });
+  return { img: sprites.get(kind.sprite)!, material: kind.material, battery, s, state: 'belt', cooldown: 0 };
+}
+
+function spawnItem(s = 0) {
+  items.push(makeItem(s));
 }
 
 function flyTo(item: Item, x1: number, y1: number, then: 'belt' | 'return' | 'bin', bin?: Bin) {
@@ -463,6 +474,7 @@ function explode(battery: boolean) {
   for (let i = 0; i < 24; i++) {
     particles.push({ x: cx + between(-20, 20), y: cy + between(-16, 4), vx: between(-10, 10), vy: between(-26, -10), life: 0, max: between(1.5, 3), color: pickRandom(['#7fae4a', '#9cbf5e', '#6b8a52']), size: pickRandom([3, 4, 5]), gravity: 0, kind: 'smoke' });
   }
+  knockOver(cx, cy);
   popup(battery ? 'Batterij in het vuur!' : 'Elektronica in het vuur!', cx, fire.y - 10, 'bad');
 }
 
@@ -677,6 +689,7 @@ function update(dt: number) {
   for (const f of flashes) f.t += dt;
   flashes = flashes.filter((f) => f.t < 0.6);
   updateFire(dt);
+  updatePickers(dt);
 }
 
 // ---------- Draw ----------
@@ -1002,7 +1015,11 @@ function draw() {
   ctx.drawImage(floor, 0, 0);
   drawBelt();
   for (const bin of bins) drawBin(bin);
+  drawGrassLitter();
+  const jumping = (p: Picker) => !!p.jump;
+  for (const picker of [...pickers].sort((a, b) => a.y - b.y)) if (!jumping(picker)) drawPicker(picker);
   for (const item of items) if (item.state === 'belt') drawItem(item);
+  for (const picker of pickers) if (jumping(picker)) drawPicker(picker); // over the belt
   drawFire();
   for (const item of items) if (item.state === 'flying') drawItem(item);
   drawEffects();
@@ -1097,7 +1114,7 @@ function loop(now: number) {
 }
 
 async function init() {
-  const pngs = KINDS.map((k) => k.sprite).filter((name) => !ITEM_MAPS[name]);
+  const pngs = [...KINDS.map((k) => k.sprite).filter((name) => !ITEM_MAPS[name]), ...GRASS_LITTER, ...FLOWERS];
   const loaded = await Promise.all(pngs.map(loadSprite));
   pngs.forEach((name, i) => sprites.set(name, loaded[i]));
   for (const [name, map] of Object.entries(ITEM_MAPS)) sprites.set(name, makeSprite(map.rows, map.palette));
@@ -1119,4 +1136,413 @@ async function init() {
     requestAnimationFrame(loop);
   });
 }
+
+// ---------- Litter pickers on the grass ----------
+// Not interactive: a few people like the ones in the Doe mee game walk around on the grass with a grabber and
+// a bag. Now and then some litter turns up on the grass; they walk over, pick it up and put it in their bag.
+
+type Picker = {
+  x: number; // feet
+  y: number;
+  dir: 1 | -1;
+  walk: number; // walk animation phase
+  state: 'walk' | 'rest' | 'pick' | 'travel' | 'gone' | 'knocked';
+  knock: { t: number; away: 1 | -1; before: 'walk' | 'rest' | 'pick' | 'travel' } | null; // blown over by an explosion
+  leaving: boolean; // travelling off the screen at the end of their shift (otherwise: coming on)
+  age: number; // seconds on shift; after about half a minute someone else takes over
+  shift: number;
+  jump: { x0: number; y0: number; x1: number; y1: number; t: number } | null; // hopping over the belt
+  tx: number; // where they're walking to
+  ty: number;
+  t: number;
+  target: GrassLitter | null; // litter they're going for
+  held: HTMLCanvasElement | null; // in the grabber, on its way to the bag
+  bag: number; // how full their bag is
+  tip: { x: number; y: number }; // grabber tip, relative to the feet, in facing direction
+  skin: string;
+  hair: string;
+  longHair: boolean;
+  shirt: string;
+  pants: string;
+};
+type GrassLitter = { img: HTMLCanvasElement; x: number; y: number; claimed: boolean };
+
+const PICKER_SPEED = 13;
+const SHIFT_MIN = 25; // seconds before someone hands over to a new picker
+const SHIFT_MAX = 35;
+const JUMP_TIME = 0.7;
+const KNOCK_RANGE = 90; // people this close to an exploding fire are blown over
+const KNOCK_TIME = 3.6; // falling, lying, getting up and standing there dizzy
+const FLOWERS = ['narcis', 'roos', 'viooltje', 'madelief', 'tulp'];
+const FLOWER_ODDS = [0.45, 0.6, 0.72, 0.86, 1]; // cumulative, as in background.ts: the daffodil is the most common
+const GRASS_LITTER = ['sigaret', 'chips', 'beker', 'schoen', 'wiel', 'knop'];
+const GRASS_MAX = 4; // at most this much litter on the grass at once
+const GRASS_MIN_T = 2; // seconds between two new bits of litter on the grass
+const GRASS_MAX_T = 5;
+const SHIRTS = ['#f08a24', '#e6c229', '#3a8ad6', '#c0392b', '#8a4fb0', '#f4f4f4'];
+const PANTS = ['#2a3a5c', '#3a3a3a', '#5a4630', '#1f4d3a'];
+let pickers: Picker[] = [];
+let grassLitter: GrassLitter[] = [];
+let grassSprites: HTMLCanvasElement[] = []; // half size: background litter, not part of the game
+let grassDeck: HTMLCanvasElement[] = [];
+let nextGrassLitter = 1;
+let blocked: Rect[] = [];
+
+// Only the legs have to be on free grass: seen from this angle the head may stick out over the belt behind them.
+const personRect = (x: number, y: number): Rect => ({ x0: x - 6, y0: y - 9, x1: x + 6, y1: y + 1 });
+const isFree = (x: number, y: number) => {
+  if (x < 8 || x > W - 8 || y < 26 || y > H - 4) return false;
+  const r = personRect(x, y);
+  return !blocked.some((b) => overlaps(b, r));
+};
+function clearPath(x0: number, y0: number, x1: number, y1: number) {
+  const steps = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3);
+  for (let i = 1; i <= steps; i++) if (!isFree(x0 + ((x1 - x0) * i) / steps, y0 + ((y1 - y0) * i) / steps)) return false;
+  return true;
+}
+
+// On every new layout: work out where the grass is free and put a few people on it.
+function placePickers() {
+  const card = document.querySelector('main');
+  const nav = document.querySelector('.pond-menu');
+  blocked = [
+    ...segments.map((seg) => grow(segmentRect(seg), 2)),
+    ...bins.map((bin) => grow({ x0: bin.x - BIN / 2, y0: bin.y - BIN / 2 - 6, x1: bin.x + BIN / 2, y1: bin.y + BIN / 2 }, 2)),
+    { x0: fire.x - 10, y0: fire.y - 20, x1: fire.x + FIRE_W + 10, y1: H },
+  ];
+  if (card) blocked.push(grow(rectOf(card), 4 / scale + 2));
+  if (nav) blocked.push(rectOf(nav));
+  grassSprites = GRASS_LITTER.map((name) => {
+    const img = sprites.get(name)!;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(img.width / 2);
+    c.height = Math.ceil(img.height / 2);
+    const g = c.getContext('2d')!;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, 0, 0, c.width, c.height);
+    return c;
+  });
+  grassLitter = [];
+  pickers = [];
+  const count = W < 220 ? 2 : 3;
+  for (let tries = 0; tries < 400 && pickers.length < count; tries++) {
+    const x = Math.round(between(10, W - 10));
+    const y = Math.round(between(30, H - 6));
+    if (!isFree(x, y) || pickers.some((p) => Math.hypot(p.x - x, p.y - y) < 30)) continue;
+    pickers.push(newPicker(x, y));
+  }
+}
+
+function newPicker(x: number, y: number): Picker {
+  return {
+    x,
+    y,
+    dir: Math.random() < 0.5 ? 1 : -1,
+    walk: 0,
+    state: 'rest',
+    tx: x,
+    ty: y,
+    t: between(0.5, 3),
+    target: null,
+    held: null,
+    bag: 0,
+    tip: { x: 9, y: -3 },
+    age: 0,
+    shift: between(SHIFT_MIN, SHIFT_MAX),
+    jump: null,
+    leaving: false,
+    knock: null,
+    skin: pickRandom(SKIN_TONES),
+    hair: pickRandom(HAIR_COLORS),
+    longHair: Math.random() < 0.5,
+    shirt: pickRandom(SHIRTS),
+    pants: pickRandom(PANTS),
+  };
+}
+
+// An explosion in the fire blows everyone nearby over: they fall (away from the fire), lie there for a
+// moment, get up again and stand there dizzy before carrying on.
+function knockOver(x: number, y: number) {
+  for (const p of pickers) {
+    if (p.jump || p.state === 'knocked' || Math.hypot(p.x - x, p.y - y) > KNOCK_RANGE) continue;
+    if (p.state === 'pick' && p.target) p.target.claimed = false;
+    if (p.state === 'pick') p.target = null;
+    p.held = null;
+    p.knock = { t: 0, away: p.x < x ? -1 : 1, before: p.state as 'walk' | 'rest' | 'pick' | 'travel' };
+    p.state = 'knocked';
+  }
+}
+
+// Coming on and going off shift: people walk straight in from, or out to, the side of the screen, and hop over
+// any belt in their way.
+const onBelt = (x: number, y: number) => {
+  const r = personRect(x, y);
+  return segments.some((seg) => overlaps(grow(segmentRect(seg), 1), r));
+};
+
+function goHome(p: Picker) {
+  if (p.target) p.target.claimed = false;
+  p.target = null;
+  p.state = 'travel';
+  p.leaving = true;
+  p.tx = p.x < W / 2 ? -12 : W + 12;
+  p.ty = p.y;
+}
+
+// Someone new takes over: they walk in from the side of the screen to a free spot on the grass.
+function sendReplacement() {
+  for (let tries = 0; tries < 100; tries++) {
+    const x = Math.round(between(12, W - 12));
+    const y = Math.round(between(30, H - 6));
+    if (!isFree(x, y)) continue;
+    const p = newPicker(x < W / 2 ? -12 : W + 12, y);
+    p.state = 'travel';
+    p.tx = x;
+    p.ty = y;
+    pickers.push(p);
+    return;
+  }
+}
+
+function travel(p: Picker, dt: number) {
+  if (p.jump) {
+    const j = p.jump;
+    j.t += dt;
+    const u = Math.min(1, j.t / JUMP_TIME);
+    p.x = j.x0 + (j.x1 - j.x0) * u;
+    p.tip = { x: 7, y: -12 };
+    if (u >= 1) p.jump = null;
+    return;
+  }
+  const dx = p.tx - p.x;
+  if (Math.abs(dx) < 0.5) {
+    if (p.leaving) p.state = 'gone';
+    else {
+      p.state = 'rest';
+      p.t = between(0.3, 1);
+    }
+    return;
+  }
+  const dir = dx < 0 ? -1 : 1;
+  p.dir = dir;
+  const nx = p.x + dir * Math.min(Math.abs(dx), PICKER_SPEED * dt);
+  if (onBelt(nx, p.y)) {
+    // belt ahead: hop over it to the first free grass on the other side
+    for (let k = 1; k < 80; k++) {
+      const lx = p.x + dir * k;
+      if (!onBelt(lx, p.y)) {
+        p.jump = { x0: p.x, y0: p.y, x1: lx + dir * 2, y1: p.y, t: 0 };
+        return;
+      }
+    }
+  }
+  p.x = nx;
+  p.walk += dt * 8;
+  p.tip = { x: 9, y: -3 + Math.round(Math.sin(p.walk * 2)) };
+}
+
+// New litter turns up somewhere on the grass, not too far from one of the people, where they can reach it.
+function dropGrassLitter() {
+  if (grassLitter.length >= GRASS_MAX || pickers.length === 0) return;
+  for (let tries = 0; tries < 150; tries++) {
+    const p = pickRandom(pickers);
+    const a = Math.random() * Math.PI * 2;
+    const d = between(20, 120);
+    const x = Math.round(p.x + Math.cos(a) * d);
+    const y = Math.round(p.y + Math.sin(a) * d * 0.6);
+    if (!isFree(x, y)) continue;
+    if (!(isFree(x - 10, y) && clearPath(p.x, p.y, x - 10, y)) && !(isFree(x + 10, y) && clearPath(p.x, p.y, x + 10, y))) continue;
+    // a shuffled deck, so it's a different item every time instead of the same thing over and over
+    if (grassDeck.length === 0) grassDeck = [...grassSprites].sort(() => Math.random() - 0.5);
+    grassLitter.push({ img: grassDeck.pop()!, x, y, claimed: false });
+    return;
+  }
+}
+
+// A spot next to the litter they can walk to in a straight line.
+function goFor(p: Picker, it: GrassLitter) {
+  for (const side of [p.x < it.x ? -1 : 1, p.x < it.x ? 1 : -1]) {
+    const x = it.x + side * 8;
+    if (isFree(x, it.y) && clearPath(p.x, p.y, x, it.y)) {
+      it.claimed = true;
+      p.target = it;
+      p.tx = x;
+      p.ty = it.y;
+      p.state = 'walk';
+      return true;
+    }
+  }
+  return false;
+}
+
+// Otherwise: stroll to a new spot, not too far, without walking through the belt, a bin or the card.
+function wander(p: Picker) {
+  for (let tries = 0; tries < 30; tries++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = between(15, 60);
+    const x = Math.round(p.x + Math.cos(a) * d);
+    const y = Math.round(p.y + Math.sin(a) * d * 0.6);
+    if (isFree(x, y) && clearPath(p.x, p.y, x, y)) {
+      p.tx = x;
+      p.ty = y;
+      p.state = 'walk';
+      return;
+    }
+  }
+  p.state = 'rest';
+  p.t = between(1, 2);
+}
+
+function walkTowards(p: Picker, dt: number) {
+  const dx = p.tx - p.x;
+  const dy = p.ty - p.y;
+  const d = Math.hypot(dx, dy);
+  if (d < 0.5) return true;
+  const step = Math.min(d, PICKER_SPEED * dt);
+  p.x += (dx / d) * step;
+  p.y += (dy / d) * step;
+  if (Math.abs(dx) > 0.5) p.dir = dx < 0 ? -1 : 1;
+  p.walk += dt * 8;
+  p.tip = { x: 9, y: -3 + Math.round(Math.sin(p.walk * 2)) };
+  return false;
+}
+
+function updatePickers(dt: number) {
+  nextGrassLitter -= dt;
+  if (nextGrassLitter <= 0) {
+    dropGrassLitter();
+    nextGrassLitter = between(GRASS_MIN_T, GRASS_MAX_T);
+  }
+  for (const p of [...pickers]) updatePicker(p, dt);
+  pickers = pickers.filter((p) => p.state !== 'gone');
+  const working = pickers.filter((p) => !p.leaving).length;
+  if (working < (W < 220 ? 2 : 3) && Math.random() < dt) sendReplacement();
+}
+
+function updatePicker(p: Picker, dt: number) {
+  p.t -= dt;
+  p.age += dt;
+  if (p.state === 'knocked' && p.knock) {
+    p.knock.t += dt;
+    if (p.knock.t >= KNOCK_TIME) {
+      p.state = p.knock.before === 'pick' ? 'rest' : p.knock.before;
+      p.knock = null;
+    }
+    return;
+  }
+  if (p.state === 'travel') return travel(p, dt);
+  // shift over: off they go (not in the middle of picking something up)
+  if (p.age > p.shift && p.state === 'rest' && !p.held) return goHome(p);
+  if (p.state === 'walk') {
+    if (!walkTowards(p, dt)) return;
+    if (p.target) {
+      p.dir = p.target.x < p.x ? -1 : 1;
+      p.state = 'pick';
+      p.t = 1.4;
+    } else {
+      p.state = 'rest';
+      p.t = between(0.6, 2.2);
+    }
+  } else if (p.state === 'rest') {
+    p.tip = { x: 9, y: -3 };
+    if (p.t > 0) return;
+    const free = grassLitter.filter((it) => !it.claimed).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
+    if (!free.some((it) => goFor(p, it))) wander(p);
+  } else if (p.state === 'pick') {
+    // reach down, close the grabber, bring it round to the bag on their back and let go
+    const u = 1 - p.t / 1.4;
+    if (u < 0.3) p.tip = { x: 10, y: -1 };
+    else {
+      if (p.target) {
+        p.held = p.target.img;
+        grassLitter = grassLitter.filter((it) => it !== p.target);
+        p.target = null;
+      }
+      const v = Math.min(1, (u - 0.3) / 0.5);
+      p.tip = { x: 10 - v * 17, y: -1 - Math.sin(v * Math.PI) * 10 - v * 10 };
+      if (u > 0.8 && p.held) {
+        p.held = null;
+        p.bag = Math.min(3, p.bag + 1);
+      }
+    }
+    if (p.t > 0) return;
+    p.state = 'rest';
+    p.t = between(0.4, 1.2);
+  }
+}
+
+// Litter lying on the grass (before the people so they stand in front of it).
+function drawGrassLitter() {
+  for (const it of grassLitter) ctx.drawImage(it.img, Math.round(it.x - it.img.width / 2), Math.round(it.y - it.img.height + 1));
+}
+
+// Side view, like the people in the Doe mee game: feet at (x, y), bag on the back, grabber in front.
+function drawPicker(p: Picker) {
+  const fx = Math.round(p.x);
+  const hop = p.jump ? Math.sin(Math.min(1, p.jump.t / JUMP_TIME) * Math.PI) * 14 : 0;
+  const fy = Math.round(p.y - hop);
+  const d = p.dir;
+  const q = (x: number, y: number, w: number, h: number, c: string) => rect(d > 0 ? fx + x : fx - x - w, fy + y, w, h, c);
+  let tilt = 0; // blown over: 0 = standing, ±90° = lying on the ground
+  if (p.knock) {
+    const t = p.knock.t;
+    const fall = t < 0.3 ? t / 0.3 : t < 1.6 ? 1 : t < 2.1 ? 1 - (t - 1.6) / 0.5 : 0;
+    tilt = p.knock.away * (fall * Math.PI) / 2;
+    if (t >= 2.1) tilt = Math.sin(t * 9) * 0.12; // wobbly on their feet
+    ctx.save();
+    ctx.translate(fx, fy);
+    ctx.rotate(tilt);
+    ctx.translate(-fx, -fy);
+  }
+  const walking = (p.state === 'walk' || p.state === 'travel') && !p.jump;
+  const sway = walking ? Math.round(Math.sin(p.walk)) : 0;
+  const lift = walking && Math.cos(p.walk) > 0 ? 1 : 0;
+
+  rect(fx - 5, Math.round(p.y) - 1, 10, 2, 'rgba(0, 0, 0, 0.2)'); // shadow, stays on the ground during a jump
+  q(-10, -11 - p.bag, 6, 7 + p.bag, '#222e26'); // bag on the back, filling up
+  q(-10, -11 - p.bag, 6, 1, '#5a6f61');
+  q(-3 - sway, -9, 3, 9 - (lift ? 0 : 1), p.pants);
+  q(-3 - sway, -2, 3, 2, '#1f1f1f');
+  q(1 + sway, -9, 3, 9 - lift, p.pants);
+  q(1 + sway, -2 - lift, 3, 2, '#1f1f1f');
+  q(-4, -18, 8, 9, p.shirt);
+  q(-6, -17, 2, 6, p.shirt);
+  q(-6, -11, 2, 2, p.skin);
+  q(-3, -24, 6, 6, p.skin);
+  q(-3, -24, 6, 2, p.hair);
+  q(-3, -22, 1, 3, p.hair);
+  if (p.longHair) q(-4, -23, 2, 9, p.hair);
+  q(1, -21, 1, 1, '#1a1a1a');
+
+  // arm towards the grabber tip, then the grabber itself
+  const shoulder = { x: 3, y: -16 };
+  const vx = p.tip.x - shoulder.x;
+  const vy = p.tip.y - shoulder.y;
+  const len = Math.hypot(vx, vy) || 1;
+  const arm = Math.min(len, 5);
+  for (let k = 0; k <= arm; k++) q(Math.round(shoulder.x + (vx / len) * k), Math.round(shoulder.y + (vy / len) * k), 2, 2, p.shirt);
+  const hand = { x: Math.round(shoulder.x + (vx / len) * arm), y: Math.round(shoulder.y + (vy / len) * arm) };
+  q(hand.x, hand.y, 2, 2, p.skin);
+  const tip = { x: Math.round(p.tip.x), y: Math.round(p.tip.y) };
+  const steps = Math.max(1, Math.round(Math.hypot(tip.x - hand.x, tip.y - hand.y)));
+  for (let k = 0; k <= steps; k++) {
+    const x = Math.round(hand.x + ((tip.x - hand.x) * k) / steps);
+    const y = Math.round(hand.y + ((tip.y - hand.y) * k) / steps);
+    q(x, y, 1, 1, k < 3 ? '#c0392b' : '#8a97a3');
+  }
+  if (p.held) ctx.drawImage(p.held, Math.round(fx + d * tip.x - p.held.width / 2), Math.round(fy + tip.y - p.held.height / 2));
+  if (p.knock) {
+    ctx.restore();
+    // dizzy: little stars circling around their head, from the moment they're down until they carry on
+    if (p.knock.t > 0.4) {
+      const head = p.knock.t < 2.1 ? { x: fx + p.knock.away * 20 * Math.sin(Math.abs(tilt)), y: fy - 20 * Math.cos(tilt) } : { x: fx, y: fy - 22 };
+      for (let k = 0; k < 3; k++) {
+        const a = time * 5 + (k * Math.PI * 2) / 3;
+        rect(Math.round(head.x + Math.cos(a) * 6), Math.round(head.y - 4 + Math.sin(a) * 2), 1, 1, '#ffe14d');
+        rect(Math.round(head.x + Math.cos(a) * 6) - 1, Math.round(head.y - 4 + Math.sin(a) * 2), 3, 1, 'rgba(255, 225, 77, 0.5)');
+      }
+    }
+  }
+}
+
 init();
