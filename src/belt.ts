@@ -690,6 +690,7 @@ function update(dt: number) {
   flashes = flashes.filter((f) => f.t < 0.6);
   updateFire(dt);
   updatePickers(dt);
+  for (const duck of ducks) updateDuck(duck, dt);
 }
 
 // ---------- Draw ----------
@@ -1017,7 +1018,12 @@ function draw() {
   for (const bin of bins) drawBin(bin);
   drawGrassLitter();
   const jumping = (p: Picker) => !!p.jump;
-  for (const picker of [...pickers].sort((a, b) => a.y - b.y)) if (!jumping(picker)) drawPicker(picker);
+  // people and ducks on the grass, the ones further down in front
+  const walkers: { y: number; draw: () => void }[] = [
+    ...pickers.filter((p) => !jumping(p)).map((p) => ({ y: p.y, draw: () => drawPicker(p) })),
+    ...ducks.map((d) => ({ y: d.y, draw: () => drawDuck(d) })),
+  ];
+  for (const w of walkers.sort((a, b) => a.y - b.y)) w.draw();
   for (const item of items) if (item.state === 'belt') drawItem(item);
   for (const picker of pickers) if (jumping(picker)) drawPicker(picker); // over the belt
   drawFire();
@@ -1114,7 +1120,7 @@ function loop(now: number) {
 }
 
 async function init() {
-  const pngs = [...KINDS.map((k) => k.sprite).filter((name) => !ITEM_MAPS[name]), ...GRASS_LITTER, ...FLOWERS];
+  const pngs = [...KINDS.map((k) => k.sprite).filter((name) => !ITEM_MAPS[name]), ...GRASS_LITTER, ...FLOWERS, 'eend'];
   const loaded = await Promise.all(pngs.map(loadSprite));
   pngs.forEach((name, i) => sprites.set(name, loaded[i]));
   for (const [name, map] of Object.entries(ITEM_MAPS)) sprites.set(name, makeSprite(map.rows, map.palette));
@@ -1223,6 +1229,7 @@ function placePickers() {
     return c;
   });
   grassLitter = [];
+  placeDucks();
   pickers = [];
   const count = W < 220 ? 2 : 3;
   for (let tries = 0; tries < 400 && pickers.length < count; tries++) {
@@ -1543,6 +1550,98 @@ function drawPicker(p: Picker) {
       }
     }
   }
+}
+
+// ---------- Mallards waddling over the grass ----------
+// The same mallard as on the pond (only mallards), with little orange legs; they waddle about, stop and
+// peck at the grass now and then.
+
+type Duck = { x: number; y: number; dir: 1 | -1; tx: number; ty: number; state: 'walk' | 'rest'; t: number; walk: number; peck: number };
+let ducks: Duck[] = [];
+const DUCK_SPEED = 6;
+const DUCK_APART = 80; // ducks keep at least this far from each other
+let duckImg: HTMLCanvasElement | undefined; // the pond mallard at half size
+function smallDuck() {
+  if (duckImg) return duckImg;
+  const img = sprites.get('eend')!;
+  duckImg = document.createElement('canvas');
+  duckImg.width = Math.ceil(img.width / 2);
+  duckImg.height = Math.ceil(img.height / 2);
+  const g = duckImg.getContext('2d')!;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(img, 0, 0, duckImg.width, duckImg.height);
+  return duckImg;
+}
+
+function placeDucks() {
+  ducks = [];
+  for (let tries = 0; tries < 400 && ducks.length < 2; tries++) {
+    const x = Math.round(between(16, W - 16));
+    const y = Math.round(between(30, H - 6));
+    if (!isFree(x - 4, y) || !isFree(x + 4, y)) continue;
+    if (ducks.some((o) => Math.hypot(o.x - x, o.y - y) < Math.max(DUCK_APART, H / 3))) continue; // spread out over the page
+    ducks.push({ x, y, dir: Math.random() < 0.5 ? 1 : -1, tx: x, ty: y, state: 'rest', t: between(0.5, 3), walk: 0, peck: 0 });
+  }
+}
+
+function updateDuck(d: Duck, dt: number) {
+  d.t -= dt;
+  d.peck = Math.max(0, d.peck - dt);
+  if (d.state === 'rest') {
+    if (d.t > 0) {
+      if (d.peck === 0 && Math.random() < dt * 0.6) d.peck = 0.35; // peck at the grass
+      return;
+    }
+    for (let tries = 0; tries < 20; tries++) {
+      const a = Math.random() * Math.PI * 2;
+      const dist = between(10, 45);
+      const x = Math.round(d.x + Math.cos(a) * dist);
+      const y = Math.round(d.y + Math.sin(a) * dist * 0.5);
+      if (ducks.some((o) => o !== d && Math.hypot(o.x - x, o.y - y) < DUCK_APART)) continue;
+      if (isFree(x - 4, y) && isFree(x + 4, y) && clearPath(d.x - 4, d.y, x - 4, y) && clearPath(d.x + 4, d.y, x + 4, y)) {
+        d.tx = x;
+        d.ty = y;
+        d.state = 'walk';
+        return;
+      }
+    }
+    d.t = between(1, 2);
+    return;
+  }
+  const dx = d.tx - d.x;
+  const dy = d.ty - d.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 0.5) {
+    d.state = 'rest';
+    d.t = between(1, 4);
+    return;
+  }
+  const step = Math.min(dist, DUCK_SPEED * dt);
+  d.x += (dx / dist) * step;
+  d.y += (dy / dist) * step;
+  if (Math.abs(dx) > 0.5) d.dir = dx < 0 ? -1 : 1;
+  d.walk += dt * 10;
+}
+
+function drawDuck(d: Duck) {
+  const img = smallDuck();
+  const x = Math.round(d.x);
+  const y = Math.round(d.y);
+  const walking = d.state === 'walk';
+  const step = walking ? Math.round(Math.sin(d.walk)) : 0;
+  const bob = walking && Math.abs(Math.sin(d.walk)) > 0.5 ? 1 : 0; // waddle
+  rect(x - 5, y, 10, 1, 'rgba(0, 0, 0, 0.2)');
+  // little orange legs
+  rect(x - 1 + step, y - 1, 1, 2, '#e8892a');
+  rect(x + 1 - step, y - 1, 1, 2, '#e8892a');
+  const top = y - 1 - img.height - bob + (d.peck > 0 ? 1 : 0);
+  ctx.save();
+  if (d.dir < 0) {
+    ctx.translate(x * 2 - (img.width % 2), 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(img, x - Math.round(img.width / 2), top);
+  ctx.restore();
 }
 
 init();
