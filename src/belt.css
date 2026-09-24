@@ -1,0 +1,77 @@
+/* The belt covers the whole page (not just the screen) and scrolls along with it, so it can run around the
+   text card; see belt.ts. The floor color also fills the last few pixels the canvas doesn't reach. */
+#belt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  display: block;
+  image-rendering: pixelated;
+}
+
+body.about {
+  background: #3f8232;
+  overflow-x: clip;
+}
+
+/* Horizontal swipes knock items off the belt instead of panning; vertical swipes still scroll, except when
+   they start on an item (belt.ts cancels those). */
+html,
+body {
+  touch-action: pan-y;
+}
+
+/* More room below the card for the belt to snake down to the fire. */
+body.about main {
+  margin-bottom: 110vh;
+}
+
+/* Phone: card to the left, leaving a strip on the right where the belt comes down. */
+@media (max-width: 699px) {
+  body.about main {
+    width: calc(100% - 104px);
+    margin: 120px 0 110vh 12px;
+  }
+}
+
+/* Tablet: menu column on the left, card in the middle, belt on the right. */
+@media (min-width: 700px) and (max-width: 1099px) {
+  body.about main {
+    width: min(600px, calc(100% - 216px - 100px));
+  }
+}
+
+/* Short message at a bin or at the fire. left/top are set per message, in page coordinates. */
+.belt-popup {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  padding: 8px 12px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  line-height: 1.4;
+  width: max-content;
+  max-width: 220px; /* long messages wrap instead of running off a phone screen */
+  text-align: center;
+  background: #fff;
+  border: 3px solid #16301a;
+  box-shadow: 0 4px 0 #16301a;
+  pointer-events: none;
+  animation: fact-in 0.15s ease-out;
+}
+.belt-popup-good { color: #2f6b3a; }
+.belt-popup-bad { color: #af3029; }
+.belt-popup-out {
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+@media (max-width: 699px) {
+  .belt-popup { font-size: 8px; padding: 6px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .belt-popup { animation: none; }
+}
+
+.counter {
+  line-height: 1.7;
+}
